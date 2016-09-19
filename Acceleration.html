@@ -1,0 +1,819 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+</head>
+<body bgcolor="#16c460" >
+<div id="the_div">
+<canvas id='screen'> </canvas>
+<canvas id='button1'></canvas>
+<canvas id='button2'></canvas>
+
+<script >
+var imgpix={truckcrashing : {x: 0,y:4, w:174, h:84, frames:5},truckobst : {x: 0,y:92, w: 173, h:84, frames:5},nanocrash:{x:0,y:188,w:104,h:54,frames:5},racingcar:{x:535,y:190,w:182,h:50,frames:1},nano:{x:719, y:189, w:107, h:53,frames:1},obstaclecrash:{x:0,y:243,w:173,h:81,frames:3},truck_left:{x:525,y:242,w:175,h:81,frames:1},truck_right:{x:702,y:243,w:175,h:80,frames:1},trafficlight:{x:871, y:0, w:24,h:81,frames:1},tree:{x:897,y:3,w:98,h:71,frames:1},bush:{x:879,y:245,w:115,h:70,frames:1}};
+//var speeds={"nano" : 50, "truck" : 15, racingcar : 150};
+var vehicles_names=new Array("nano","truck_right","racingcar","truck_left","trafficlight");
+var accelerations=new Array(18/10, 1/2,4,0,0,0,0,(-7/2 ),(-5/2),(-5/2),(-40),(-12));
+var ttmax= new Array(14,14,19/2,0,0,0,0,10,12,11,5,6);//last numbers just security+graph
+var sc_nb=0;
+var scene=null;
+window.timer=null;
+//nextbutton=null;
+//startbutton=null;
+var integration=null; 
+var deceleration=null;
+graph_d=null;	
+graph_v=null;	
+dtext=null;
+longtext=null;
+titletxt=null;
+text1="What does a constant acceleration of 1.8 m/sec\u00B2 mean?  Speed is 1.8 m/sec after 1 sec,  3.6 m/sec after 2 sec,   5.4 m/sec after 3 sec etc. We use the formula v=a x t; for different accelerations (each constant over time), we get straight lines with different slopes. The higher the acceleration the steeper the slope";
+text2="All 3 curves have the same shape, curved upwards. This means that e.g. during the second second the car covers more distance than during the first second. Why? because speed has increased";
+text3="In the SPEED versus TIME graph, each rectangle has width=1 second and height = average speed during that 1-second time-interval. Here the blue rectangle's area represents the distance covered during the fourth second with an average speed of 6.3 m/sec. Remember s = v x t if v constant  .  In the DISTANCE versus TIME graph, we add that rectangle (=distance) to the distance already covered during the past seconds.";
+text4="The vehicle drives with a constant speed for 3 sec, then applies the brakes";
+text5="Why do we apply the same formula for deceleration as for acceleration? In this exercise, there is neither acceleration nor deceleration during the first 3 seconds, the distance increases linearly as s=u t (u is the initial speed). When brakes are applied, the difference (yellow area) between the straight line of constant speed (s = u t) and the actual distance covered, increases more and more as at\u00B2/2 It is the lack of distance covered due to deceleration that follows the law at\u00B2/2 . Total s= ut + at\u00B2/2 (with a<0)";
+text6="When a moving car collides with a massive object, deceleration occurs over a small distance (the crumble-zone of the car), and  deceleration is very large. Example : if a car, driving at 36 km/hr (=10 m/sec) hits a wall, and the crumble zone is 1 m, the deceleration is a=-50m/sec\u00B2 (0\u00B2-10\u00B2=2*a*1). Only a seatbelt can keep you from flying through the windshield.";
+text7="In the next animations, a constant speed of 20 m/sec will be kept during 3 sec, then deceleration (= negative acceleration)  due to braking or to collision will set in";
+
+
+var Scene = function(j) {
+	this.initialize=function(sc_nb){
+		this.tt=0;
+		this.d=0; //this.max_d =400; // and x=d*10+xo
+		this.x = 0; 
+		this.lastx=0;
+		this.lastd=0;
+	   this.treePositions=[];
+	   this.offset=0;
+	   this.y = 60; this.ytruck=60;
+	   if (sc_nb===10){this.ytruck=35; }
+		this.a = accelerations[j];
+		this.vx=0; //instant speed of the vehicle
+		this.vm=0; //speed of obstacle+vehicle after collision
+		this.D=0;  this.T=0;  ///to use the precise distance where reached, no glitches
+		this.crashframemax=5; 
+		if(sc_nb<3){this.veh_now = vehicles_names[j] ; }
+		else if(sc_nb===7){
+			this.veh_now = vehicles_names[0] ; this.obstacle=vehicles_names[4]; this.xto=2463;				
+			}
+		else if(sc_nb===8){
+			this.veh_now = vehicles_names[1] ; this.obstacle=vehicles_names[4]; this.xto=2982;
+			}
+		else if(sc_nb===10){
+			this.veh_now = vehicles_names[0]; this.crashingveh="nanocrash"; this.obstacle=vehicles_names[3]; 
+			this.obstaclecrash="obstaclecrash"; this.obstframemax=3;//this.framewidthveh=105;this.framewidthobst=157;
+			this.xto=1325;}//or 1325
+		else if(sc_nb===11){this.veh_now = vehicles_names[1]; this.crashingveh= "truckcrashing"; 
+			this.obstacle=vehicles_names[3]; this.obstaclecrash="truckobst"; this.obstframemax=5;
+			this.xto=1373;}//or 1373 xto calculated for fitting images
+		this.xt=this.xto;
+		this.juststopped=true;
+		this.dtext=new DText(sc_nb,[25,165, window.innerWidth/3,300]);
+		
+		
+		this.canvas= document.createElement("canvas");
+			this.contx=this.canvas.getContext('2d');
+			this.canvas.style="position:absolute"
+				this.canvas.style.left="0px"; 
+				this.canvas.style.top="40px";
+			this.canvas.width=window.innerWidth;
+			this.canvas.height=145;
+			this.canvas.id="scene"+sc_nb;
+					this.backgrounditems=new Array("tree","bush");
+			for (var n=0; n<10 ; n+=1){
+						this.treePositions.push(n*400);}
+			this.nbofrepeats=1+Math.floor(this.canvas.width/400);//nb of bushes=nb of trees
+			document.getElementById("the_div").appendChild(this.canvas);		
+			this.dtext.update(this.a,this.tt,this.d, this.vx);
+			if((sc_nb===7)||(sc_nb===8)||(sc_nb===10)||(sc_nb===11)){this.dtext.update(0,0,0,0);	}
+		}		
+   this.step = function(dt){
+		this.tt+=dt;
+		this.tt=(Math.round(100*this.tt))/100;
+		
+		if(sc_nb<3){
+				this.vx = this.a*this.tt; 
+				this.d= this.a*this.tt*this.tt/2; 
+				if(window.innerWidth>1250){ttmax[1]=24;}
+				if(this.tt<= ttmax[sc_nb]) {
+					this.dtext.update(this.a,this.tt,this.d, this.vx);
+					graph_d.addPoint(this.tt, this.d,"black");
+					graph_v.addPoint(this.tt, this.vx,"black");
+					this.draw();
+					}
+				else {
+				console.log(this.tt, this.x);
+				startbutton.label="RESTART";
+				startbutton.drawButton();
+				clearInterval(window.timer); 
+				window.timer=null;
+				}
+			}
+		else{///scnb 7,8,10,11
+		this.vo=20; 
+			if(this.tt<=3) {//console.log("drawing "+this.veh_now);
+				this.vx = this.vo; 
+				this.d= this.vx*this.tt; 
+				this.dtext.update(0,this.tt,this.d, this.vx);
+				graph_d.addPoint(this.tt, this.d,"black");
+				graph_v.addPoint(this.tt, this.vx,"black");
+				this.draw();
+				this.D=this.d;//for continuity
+				this.T=this.tt;
+			}
+			else if(this.tt<(ttmax[sc_nb])) { 
+				if((sc_nb===7)||(sc_nb===8)){
+							this.vx = this.vo+this.a*(this.tt-this.T); 
+							this.d=this.D+this.vo*(this.tt-this.T)+ this.a*(this.tt-this.T)*(this.tt-this.T)/2; 
+							graph_d.setStyle("14px Verdana");
+								//graph_d.graphctx.font="14px Verdana";
+							graph_d.addLabel(3, this.D,"BRAKING","black");
+							graph_v.addLabel(3, 20 ,"BRAKING","black");
+							
+							}
+					else {
+					//crumblezone seen in pictures about 4.5 m(car+truck), 5.9 (2 trx)
+//speed after  non-elastic crash ( vmom) would be  2.35 for car+truck and 10 m/sec for 2 trucks, meaning deceleration of -43 for car and -13 m/sec2 for truck
+//duration of crumbling :  we use 5 frames at interval of 0.1 sec (3 dt) for car in  car-truck crash ,3 frames every 0.15 sec for truck-obstacle. 
+//5 frames every 0.17sec OK for trucks, 
+//after crash we use a decel of -40 (car), -12 m/sec2(truck) to account for conservation of momentum and friction
+							//this.Vm=(sc_nb===10)?2.35:10; //vm =speed after non-elastic collision due to conservation of momentum=vo*m_veh/(m_veh+m_obstacle)m_car =800kg, m_truck=6000kg
+							
+							this.vx = this.vo+this.a*(this.tt-this.T); 
+									this.Tm=this.tt;//Tm , Dm for initiating next panel without glitch
+									this.d=this.D+this.vo*(this.tt-this.T)+ this.a*(this.tt-this.T)*(this.tt-this.T)/2; 
+									//this.Dm=this.d;
+									this.xt=this.xto+20*(this.d-this.D);
+									//this.vm=this.vx;
+									//this.Xt=this.xt;
+									//console.log("> v,t,xt,d"+", "+this.vx+", "+this.tt+","+this.xt+", "+this.d);
+						
+							}
+					if (this.vx>=0){ 
+							this.dtext.update(this.a,this.tt,this.d, this.vx);
+							graph_d.addPoint(this.tt, this.d,"black");
+							graph_v.addPoint(this.tt, this.vx,"black");
+							this.draw();
+							}
+					else if((this.vx<0)&&(this.juststopped==true)){
+							this.vx=0;
+							this.dtext.update(this.a,this.tt,this.d, this.vx);
+							graph_d.addPoint(this.tt, this.d,"black");
+							graph_v.addPoint(this.tt, this.vx,"black");
+							this.draw();
+							this.juststopped=false;}
+					else	{
+							console.log(this.tt, this.x);
+							startbutton.label="RESTART";
+							startbutton.drawButton();
+							clearInterval(window.timer); 
+							window.timer=null;
+							}
+					}
+			}
+	}
+
+   this.draw = function(contx) {
+		this.contx.fillStyle="rgb(0,255,255)";//lightblue
+		this.contx.fillRect(0,0, window.innerWidth,40);
+		this.contx.fillStyle="rgb(0,136,40)";//grass, green="rgb(78,214,173)";
+		this.contx.fillRect(0,40, this.canvas.width,50);
+		this.contx.fillStyle="rgb(120,98,56)";//brown
+		this.contx.fillRect(0,90, this.canvas.width,51);
+		///fisrt calculate positions of bushes, pick the visible positions
+		var xo=20; //startposition of vehicle
+		
+		if((this.d*20+xo)<=this.canvas.width/2){//up to reaching half thru scene no mvt of bushes, veh moves
+				this.x= xo +this.d*20; //distance in pixels for given d in m
+				this.lastx = this.x;  //to avoid glitch in car position
+				for (var n=0; n<this.nbofrepeats;n+=1){
+					for (var jj=0; jj<this.backgrounditems.length;jj++){
+					var name=this.backgrounditems[jj]; 
+					Spritesheet.drawvideo(scene.contx, name, n*400+jj*180,0); 
+					}}
+				Spritesheet.drawvideo(scene.contx,this.veh_now,this.x,this.y);  
+				}
+	/*	else if ((this.d+this.canvas.width/40)>=400) {///???end of run, let the vehicle roll, trees stand still, offset is determined in next paragraph!!
+		for (var jj=0; jj<this.backgrounditems.length;jj++){
+				var name=this.backgrounditems[jj]; 
+				for (var n=0; n< this.treePositions.length;n+=1){
+				if(((this.treePositions[n]+jj*180-this.offset+imgpix[name].w)>0)&&((this.treePositions[n]+jj*180-this.offset-imgpix[name].w)<this.canvas.width)){
+				Spritesheet.drawvideo(scene.contx, name, scene.treePositions[n]+jj*180-scene.offset,0); }
+				}
+			}
+			Spritesheet.drawvideo(scene.contx, scene.veh_now, (+scene.d-scene.lastd)*20+scene.lastx, scene.y);  
+			
+		}	*/
+		else{  //////veh remains at midscreen ,bushes whoosh past
+			//this.lastd=this.d;
+			this.offset=Math.floor(this.d*20+xo-this.lastx);///offset grows but lastx=constant
+			for (var jj=0; jj<this.backgrounditems.length;jj++){///////drawing the bushes
+				var name=this.backgrounditems[jj]; 
+				for (var n=0; n< this.treePositions.length;n+=1){
+					if(((this.treePositions[n]+jj*180-this.offset+imgpix[name].w)>0)&&((this.treePositions[n]+jj*180-this.offset-imgpix[name].w)<this.canvas.width)){
+					Spritesheet.drawvideo(scene.contx, name, scene.treePositions[n]+jj*180-scene.offset,0); }
+					}
+				}
+			if(sc_nb<3){
+					Spritesheet.drawvideo(scene.contx, scene.veh_now, scene.lastx, scene.y); 
+					}
+								
+			else if ((sc_nb===7)||(sc_nb===8)){
+					if(this.tt>=3){
+							this.contx.fillStyle= "black";
+							this.contx.font="normal 20px Verdana";
+							this.contx.fillText("BRAKING",window.innerWidth/2-50,30); 
+							}  /////////draw the trafficlight 
+					if(((this.xto-this.offset-21)<this.canvas.width)&&((this.xto-this.offset+21)>0)){
+							Spritesheet.drawvideo(scene.contx, scene.obstacle, scene.xto-scene.offset,25);
+						}
+					Spritesheet.drawvideo(scene.contx,scene.veh_now, scene.lastx, scene.y);  
+					}
+					
+			else if ((sc_nb===10)||(sc_nb===11)){
+				  /////////draw the  obstacle
+						if(this.tt<=3){						
+						Spritesheet.drawvideo(scene.contx,scene.veh_now, scene.lastx, scene.y);  
+						if((( this.xto-this.offset)>0)&&((this.xto-this.offset)<this.canvas.width)){
+							Spritesheet.drawvideo(scene.contx, scene.obstacle, scene.xto-scene.offset,scene.ytruck);
+							}}
+					
+					else {///processs  the images of the collision
+						this.crashframemax=imgpix[this.crashingveh].frames;
+						this.obstframemax=imgpix[this.obstaclecrash].frames;
+
+						//console.log(this.offset);
+						this.crashframe=Math.floor(100*(this.tt-this.T)/8); if(this.crashframe>this.crashframemax-1){this.crashframe=this.crashframemax-1;} ///obstaclecrash frame
+						this.obstframe= Math.floor(100*(this.tt-this.T)/13);if(this.obstframe>=(this.obstframemax-1)){this.obstframe=(this.obstframemax-1);}
+						//console.log("frames c o"+this.crashframe+", "+this.obstframe);
+						Spritesheet.drawvideo(scene.contx,scene.obstaclecrash,scene.xt-scene.offset, scene.ytruck,scene.obstframe);  
+						//Spritesheet.drawvideo(scene.contx,scene.veh_now,scene.lastx, scene.yc);  
+						if(sc_nb===10){Spritesheet.drawvideo(scene.contx, scene.crashingveh,scene.xt-scene.offset-75, scene.y, scene.crashframe);}  
+						else{Spritesheet.drawvideo(scene.contx, scene.crashingveh,scene.xt-scene.offset-imgpix[scene.crashingveh].w+12, scene.y, 4-scene.crashframe);}  
+						}//scene.xt-scene.offset-imgpix[scene.crashingveh].w/imgpix[scene.crashingveh].frames,   
+						
+					}								
+			}
+	
+	}
+}
+var DText=function(scnb,coord){
+	this.textcanvas= document.createElement("canvas");
+	this.textctx=this.textcanvas.getContext('2d');
+	this.textcanvas.width=coord[2];
+	this.textcanvas.height=coord[3];
+	this.textcanvas.style="position:absolute; "
+	this.textcanvas.style.left=coord[0]+"px";
+	this.textcanvas.style.top=coord[1]+"px";
+	
+	document.getElementById("the_div").appendChild(this.textcanvas);
+	
+	this.centerText=function(tctx,string){
+		var textw=tctx.measureText(string).width;
+		
+		return Math.floor(this.textcanvas.width-textw)/2;
+		}
+	
+	this.setTitle=function(title){
+		this.textctx.fillStyle="rgb(62,249,146)";//lightgreen
+		this.textctx.fillRect(0,0, this.textcanvas.width, this.textcanvas.height);
+		this.textctx.font="22px Arial";
+		var x=this.centerText(this.textctx, title);
+		this.textctx.fillStyle="black";
+		this.textctx.fillText(title, x, this.textcanvas.height-(this.textcanvas.height-22)/2);
+		}
+	this.update= function(a,tt,d,v)
+		{
+		this.textctx.fillStyle="rgb(62,249,146)";//lightgreen
+		this.textctx.fillRect(0,0, this.textcanvas.width, this.textcanvas.height);
+		this.textctx.fillStyle="black"; 
+		this.textctx.font="normal 22px Verdana";	
+		this.textctx.fillText( "Acceleration( m/sec\u00B2)  "+a, 15, 40);
+		//this.textctx.fillText(a, (this.textcanvas.width)*5/8, 40);
+		this.textctx.fillText("Time (sec)" ,15,80 );
+		this.textctx.fillText( tt.toFixed(2) ,(this.textcanvas.width)*5/8, 80);
+		this.textctx.fillText( "Distance (m)",15,120);
+		this.textctx.fillText( d.toFixed(2), (this.textcanvas.width)*5/8, 120);
+		this.textctx.fillText("Speed (m/sec)", 15, 160); 
+		this.textctx.fillText( v.toFixed(2), (this.textcanvas.width)*5/8, 160);
+		this.textctx.fillText("(km/hr)",this.textctx.measureText("Speed").width+15, 190); 
+		this.textctx.fillText( (v*3.6).toFixed(2) ,(this.textcanvas.width)*5/8 , 190);
+			}
+	 } 
+var LongText=function(mytext,nbcols,nbrows){
+	//var lines =new Array();     
+	//this.measureTextlength(mytext);
+	this.input= document.createElement("TEXTAREA");
+	this.input.style="position:absolute";
+	this.input.style.top="100px";
+	if(window.innerWidth<=1250){this.input.style.left=window.innerWidth-520+"px";}
+	else{this.input.style.left=window.innerWidth/2;}
+	this.input.style.background="rgb(62,249,146)"; //background="yellow";
+	//this.input.style.color="black";
+	this.input.style.font="normal 22px Verdana";
+	this.input.cols=nbcols;//50;
+	this.input.rows=nbrows; //12;
+	this.input.value=mytext;
+	document.getElementById("the_div").appendChild(this.input);
+} 
+	
+var Graphpaper= function(canvasId,lbl,coords){
+	this.graphcanvas=document.createElement("canvas"); 
+	this.graphcanvas.width=coords[2]; 
+	this.graphcanvas.height=coords[3];
+	this.label=lbl;
+	this.graphcanvas.style="position:absolute; "
+	this.graphcanvas.style.left=coords[0]+"px"; 
+	this.graphcanvas.style.top=coords[1]+"px";
+	this.graphctx=this.graphcanvas.getContext('2d');
+	this.graphctx.font="14px Verdana";
+	this.graphctx.fillStyle="#FEF";
+	this.graphctx.globalAlpha=1;
+	this.graphctx.fillRect(0,0,this.graphcanvas.width, this.graphcanvas.height) ;
+	this.graphcanvas.id=canvasId+sc_nb;
+	//this.graphctx.save();
+	var scale=4;
+	var po=scale*6;
+	var qo=this.graphcanvas.height-scale*5;
+	this.oldx=0;
+	this.oldy=0;
+	document.getElementById("the_div").appendChild(this.graphcanvas);
+	var metrics=0;
+	
+	this.drawbg=function(){
+		//this.graphctx.restore();
+		this.graphctx.fillStyle="#FEF";
+		this.graphctx.globalAlpha=1;
+		this.graphctx.fillRect(0,0,this.graphcanvas.width, this.graphcanvas.height) ;
+		this.graphctx.translate(0.5,0.5);
+			 this.graphctx.beginPath();
+			 this.graphctx.strokeStyle="orange";
+			for(var l=0, cl=this.graphcanvas.width;l<cl;l+=4)
+				{this.graphctx.moveTo(l,0);
+				this.graphctx.lineTo(l,this.graphcanvas.height);}
+			for(var l=0, cl=this.graphcanvas.height;l<cl;l+=scale)
+				{this.graphctx.moveTo(0,l);
+				this.graphctx.lineTo(this.graphcanvas.height,l);}//this.graphctx.drawLine(0,l,graphcanvas.width,l);}
+			this.graphctx.stroke();
+			this.graphctx.closePath();
+			this.graphctx.restore();
+	
+	}
+	this.setAxes=function(unx, divx, labelx, uny, divy, labely){
+		//unitx : squares per unit 
+		//graph[i].setAxis(4, 1,"time(sec)", unity[i],divy[i], variab[i]); }
+		//divx, divy : each division in units
+		// divy*unity should be around 10-20
+		this.unitx=unx; this.unity=uny; //this.divx=divx; this.divy=divy;	
+		 //////default horizontal axis
+		 this.graphctx.beginPath();
+		 this.graphctx.strokeStyle="black";
+		 this.graphctx.fillStyle="black";
+		 this.graphctx .moveTo(po,qo);
+		 this.graphctx.lineTo(this.graphcanvas.width-1,qo);
+		 this.graphctx.moveTo(po,qo);
+		 this.graphctx.lineTo(po,1);
+		
+		 for(var p=po, i=0; p< this.graphcanvas.width; p+=scale*divx*this.unitx, i++)
+			{this.graphctx.moveTo(p,qo);
+			this.graphctx.lineTo(p,qo-scale);
+			if (i%5===0) {	metrics=this.graphctx.measureText(""+Math.floor(i*divx/2)).width;
+							this.graphctx.fillText(""+i*divx, p-metrics, qo+4*scale ); }
+			}
+		metrics=this.graphctx.measureText(labelx);
+		this.graphctx.fillText(labelx, this.graphcanvas.width-metrics.width, qo-2*scale); 
+		for(var q=qo, i=0; q>0; q-=divy*scale*this.unity, i++)
+			{this.graphctx.moveTo(po-scale,q);
+			this.graphctx.lineTo(po,q);
+			if (i%2===0) {this.graphctx.fillText(""+i*divy, po-5*scale, q+scale ); }
+			}
+		
+		this.graphctx.fillText(labely,po+ scale, 30); 
+		
+		 this.graphctx.stroke();
+		 this.graphctx.closePath();
+		//for(int p=po, i=0; p<dwidth; p+=pix*divx*unitx, i++){pg.drawLine(p, qo,p, qo-pix);   //divisions on Xaxis
+		}
+	this.traceCurve=function(xfunction,xmin,xmax,yfunction,colour){
+		 this.graphctx.beginPath();
+		 this.graphctx.strokeStyle=colour;
+		 
+		 this.graphctx.moveTo(po+xmin*this.unitx*scale,this.unit*scale*yfunction(xmin));
+		 for (var xi=xmin; xi<xmax;xi+=xfunction){
+			this.graphctx.lineTo(po+xi*this.unitx*scale,qo-this.unity*scale*yfunction(xi));}
+		 this.graphctx.stroke();
+		 this.graphctx.closePath();
+		}
+	this.setStyle=function(fontsizzandname){
+		this.graphctx.font=fontsizzandname;
+		}
+	this.addPoint=function(newx, newy,colour){
+		 this.graphctx.beginPath();
+		 this.graphctx.strokeStyle=colour;
+		 this.graphctx.moveTo(po+this.oldx*this.unitx*scale,qo-this.oldy*this.unity*scale);
+		 this.graphctx.lineTo(po+newx*this.unitx*scale,qo-newy*this.unity*scale);
+		 this.graphctx.stroke();
+		 this.graphctx.closePath();
+		 this.oldx=newx; this.oldy=newy;
+		}
+	this.addLabel=function(x,y,mystring,colour,fontsize){
+		this.graphctx.fillStyle=(colour||"black");
+		this.graphctx.fillText(mystring,po+x*this.unitx*scale,qo-y*this.unity*scale);
+		}
+	}
+ 
+
+var KButton=function(canvasId,lbl,coords){
+	this.width=coords[2]; //200;
+	this.height=coords[3];//40;
+	this.label=lbl;
+	this.buttoncanvas= document.getElementById(canvasId);
+	this.buttonctx=this.buttoncanvas.getContext('2d');
+	this.buttoncanvas.style="position:absolute; "
+	this.buttoncanvas.style.left=coords[0]+"px"; 
+	this.buttoncanvas.style.top=coords[1]+"px";
+	
+	
+	
+	this.drawButton=function(){
+		this.buttonctx.fillStyle="rgb(62,249,146)";
+		this.buttonctx.fillRect(0,0,this.width,this.height);
+		this.buttonctx.fillStyle="black"; 
+			//int labelll=fm.stringWidth(label); int offset=(width-labelll)/2; if (offset<0) offset=0;
+		this.buttonctx.font="25px Arial";	
+		var lblw=this.buttonctx.measureText(this.label).width;
+		this.buttonctx.fillText(this.label,  (this.width-lblw)/2, this.height - 5);
+	}
+	
+	this.buttoncanvas.onclick= function(){//console.log(this);startGame();}//
+		Accel.resolvebutton(this);}
+}
+/*	this.vehicleimg=document.createElement('canvas');
+	this.vehicleimg.width= imgpix[name].w; this.vehicleimg.height=imgpix[name].h ;
+	this.ctxveh=this.vehicleimg.getContext('2d');
+	this.ctxveh.drawImage(sheetimage,imgpix[name].x, imgpix[name].y, imgpix[name].w, imgpix[name].h,0,0, imgpix[name].w, imgpix[name].h);	
+	}
+	*/
+var distance_as_integration_of_speed = function(){
+	var colours5= new Array("orange","red","yellow","green","blue");
+	this.time=0; 
+		this.previoustime=0;
+		this.v=0; 
+		this.previous_v=0;
+		this.av_d=0; 
+		this.previous_av_d=0;
+		this.av_v=0;
+		this.tscale=16; this.vscale=2; this.dscale=2;//(4*4,4*2,4*1/2)
+			graph_v=new Graphpaper("graph_v", "blocks of average speed versus time ", [10,100,270,420]);
+			graph_v.drawbg();
+			graph_v.setAxes(4,1, "time(sec)", 1/2, 25, "speed(m/sec)");
+			graph_d=new Graphpaper("graph_d", "sum of blocks of average speed versus time", [300,100,270,420]);
+			graph_d.drawbg();
+			graph_d.setAxes(4,1, "time(sec)", 1 /2, 25, "distance(m)");
+		var po=24;
+		var qo=400;	
+	
+	this.step = function(dt){
+		this.time+=dt;
+		
+		if (this.time<14){ //average speed everysecond in function of time
+			this.v=this.time*accelerations[0];
+			this.av_v=(this.previous_v+this.v)/2;
+			this.av_d=this.previous_av_d+this.av_v;
+			graph_v.graphctx.fillStyle=colours5[this.time%5];
+			graph_v.graphctx.strokeStyle="black";
+			graph_v.graphctx.fillRect(po+this.tscale*this.previoustime,qo-this.vscale*this.av_v,this.tscale*dt,this.vscale*this.av_v);//down to qo
+			graph_v.graphctx.strokeRect(po+this.tscale*this.previoustime,qo-this.vscale*this.av_v,this.tscale*dt,this.vscale*this.av_v);//down to qo
+		
+		 
+		var previousi=0;
+		var iv=0; 
+		var previous_iv=0;
+		var iav_d=0; 
+		var previous_iav_d=0;
+		var iav_v=0;
+	
+		for(var i=0; i<=this.time;i++){//redraw each rect  every sec
+			iv=i*accelerations[0];
+			iav_v=(previous_iv+iv)/2;
+			iav_d=previous_iav_d+iav_v;
+			graph_d.graphctx.fillStyle=colours5[i%5];
+			graph_d.graphctx.fillRect(po+this.tscale*this.previoustime,qo-this.dscale*iav_d,this.tscale*dt,this.dscale*iav_v);//down to qo
+			graph_d.graphctx.strokeStyle="black";
+			graph_d.graphctx.strokeRect(po+this.tscale*this.previoustime,qo-this.dscale*iav_d,this.tscale*dt,this.dscale*iav_v);//down to qo
+			previousi=i;
+			previous_iv=iv;
+			previous_iav_d=iav_d;
+			}
+		
+		this.previoustime=this.time;
+		this.previous_v=this.v;
+		this.previous_av_d=this.av_d;
+		}
+		else{
+			clearInterval(window.timer); 
+			window.timer=null;
+			}
+		}
+	}
+var Decelerationgraph= function(){
+	this.vo=20;
+	this.d=0;
+	this.a=accelerations[sc_nb];
+	this.graph_d=new Graphpaper("graph_d","distance versus time graph",[50,70,410,480]);
+	this.graph_d.drawbg();
+	this.graph_d.setAxes(4,1, "time(sec)", 5/10, 25, "distance(m)");
+	//this.graph_d.graphcanvas.style.top="100px";
+	//this.graph_d.graphcanvas.style.left="100px";
+	this.graph_d.setStyle("14px Verdana");
+	var D=60;
+	this.graph_d.addLabel(4, D,"BRAKING","black");
+				
+	this.time=5;
+	this.graph_d.oldx=3;
+	this.graph_d.oldy=3*20;
+	var dc;
+
+	/*this.step = function(dt){////////////too slow, no animation
+		this.time+=dt;//1/16
+		this.time=(Math.round(100*this.time))/100;//console.log("time"+this.time);
+	*/	
+		
+	for(this.time=3;this.time<ttmax[sc_nb]; this.time+=1/16) { //security
+				this.vx = this.vo+this.a*(this.time-3); 
+				this.d=D+this.vo*(this.time-3)+ this.a*(this.time-3)*(this.time-3)/2; 
+				dc=20*this.time;	//distance if no deceleration	
+				if (this.vx>0){ 
+					this.graph_d.addPoint(this.time, this.d,"yellow");//line has to be vertical,we add two lines
+					this.graph_d.addPoint(this.time,dc,"yellow");
+					}
+				}
+		xfunction=1/16;
+			yfunction=function(tt){return 20*tt;}
+			this.graph_d.traceCurve(1/16,0,ttmax[sc_nb],yfunction,"blue");
+			yfunction = function(tt){return (20*(tt-3)+accelerations[sc_nb]*(tt-3)*(tt-3)/2+60);}
+			this.graph_d.traceCurve(1/16,3,ttmax[sc_nb],yfunction,"black");
+	
+			/*	else {///animation takes too long
+			yfunction=function(t){return this.vo*t;}
+					this.graph_d.traceCurve(1/16,0,ttmax[sc_nb],yfunction,"blue");
+					yfunction = function(tt){return (D+this.vo*(tt-3)+accelerations[7]*(tt-3)*(tt-3)/2);}
+					this.graph_d.traceCurve(1/16,3,ttmax[sc_nb],yfunction,"black");
+					clearInterval(window.timer); 
+					window.timer=null;
+					}*/
+	
+}
+		
+var Spritesheet= new function(){	 
+			this.map={};
+			this.load=function(imgpix, callback){
+				this.map=imgpix;
+				this.sheetimage=new Image();
+				this.sheetimage.src="Accel_img_tr.png";
+				this.sheetimage.onload=	callback;}
+			this.drawvideo=function(context, veh , x,y,frame){
+					if(!frame){frame=0;				
+						context.drawImage(this.sheetimage,this.map[veh].x,this.map[veh].y, this.map[veh].w,this.map[veh].h,x,y,this.map[veh].w,this.map[veh].h);
+						}
+					else{
+						//var framewidthveh= Math.floor(this.map[veh].w/this.map[veh].frames);
+						context.drawImage(this.sheetimage,this.map[veh].x+(frame)*this.map[veh].w,this.map[veh].y,this.map[veh].w,this.map[veh].h,x,y,this.map[veh].w,this.map[veh].h);
+						//var framewidthobst=Math.floor(this.map[veh].w/scene.obstframemax);
+						//context.drawImage(this.sheetimage,this.map[veh].x+frame*framewidthobst,this.map[veh].y,framewidthobst,this.map[veh].h,x,y,framewidthobst,this.map[veh].h);
+						}
+					}
+	}
+
+var Accel = new function(){
+		/*this.canvas=document.getElementById("scenes");
+		this.ctx=this.canvas.getContext('2d');
+		this.canvas.width=window.innerWidth;
+		this.canvas.height=window.innerHeight;
+		*/	
+	this.veh=new Array("car","truck","racingcar");
+	
+	this.initialize = function(imgpixels,callback){
+		 startbutton=new KButton("button1","START", [50,565,160,40]);
+		 nextbutton=new KButton("button2","NEXT", [250,565,160,40]);
+		this.titletxt=null;
+		Spritesheet.load(imgpixels,callback);
+		}
+	this.nextrun=function(){console.log("sc_nb"+sc_nb);	
+							console.log(document.getElementById("the_div").childNodes);	
+		startbutton.label="START";
+			
+ 					
+		if(sc_nb<3){
+			if((sc_nb===0)||(sc_nb===1)){
+					titletxt=new DText(1,[2,1,window.innerWidth/2,25]); titletxt.setTitle("MOTION WITH UNIFORM ACCELERATION");
+					}
+			scene= new Scene(sc_nb);
+			scene.initialize(sc_nb);
+			scene.draw();
+			if(window.innerWidth<=1250){
+				graph_d=new Graphpaper("graph_d","distance versus time graph",[window.innerWidth-270,200,264,420]);
+				graph_v=new Graphpaper("graph_v", "speed versus time graph",[window.innerWidth-540,200,264,420]);
+				}
+			else{
+				graph_d=new Graphpaper("graph_d","distance versus time graph",[window.innerWidth-410,200,410,420]);
+				graph_v=new Graphpaper("graph_v", "speed versus time graph",[window.innerWidth-820,200,410,420]);
+				}
+	
+			graph_d.drawbg();
+			graph_d.setAxes(4,1, "time(sec)", 5/10, 25, "distance(m)");
+				graph_v.drawbg();
+			graph_v.setAxes(4,1, "time(sec)", 2, 5, "speed(m/sec)");
+			startbutton.drawButton();
+			nextbutton.drawButton();
+		if((sc_nb===0)||(sc_nb===1)){
+			setTimeout(function(){document.getElementById("the_div").removeChild(titletxt.textcanvas);},10000);	
+			}
+		}
+		else if (sc_nb===3){///comparison of speed curves
+			startbutton.buttoncanvas.width=0; //startbutton=null;
+			var colours3= new Array("rgb(0,230,30)","rgb(10,10,10)","rgb(240,0,0)");
+			graph_v=new Graphpaper("graph_v", "comparison of speeds versus time for different accelerations", [100,100,410,420]);
+			graph_v.drawbg();
+			graph_v.setAxes(4,1, "time(sec)", 2, 5, "speed(m/sec)");
+			for (var jj=0;jj<3;jj+=1){				
+				var xfunction=5/100;
+				var yfunction=function(tt){return tt*accelerations[jj];} //for (var tt=0; tt<ttmax[jj]; tt+=50/1000)
+		
+				graph_v.traceCurve(xfunction,0,ttmax[jj],yfunction,colours3[jj]);//tt,vx,colours3[jj]);
+				if(jj===2){graph_v.addLabel(6,yfunction(7),"racingcar", colours3[jj]);} //tt=8;v=80
+				else {graph_v.addLabel(8, yfunction(8)+2,this.veh[jj],colours3[jj]);}
+					}
+			this.titletxt=new DText(sc_nb,[25,25,window.innerWidth/2,30]);
+			this.titletxt.setTitle("GRAPH of SPEED versus TIME");
+			if(window.innerWidth<=1250){longtext =new LongText(text1,34,14);}
+			else{longtext =new LongText(text1,45,8);}
+			//setTimeout(function(){document.getElementById("the_div").removeChild(Accel.titletxt.textcanvas);},3000);	
+			}
+		else if(sc_nb===4){//comparison of displacement curves 
+				var colours3= new Array("rgb(0,230,30)","rgb(10,10,10)","rgb(240,0,0)");
+				graph_d=new Graphpaper("graph_d", "comparison of distances covered versus time  for different accelerations", [100,100,410,420]);
+				graph_d.drawbg();
+				graph_d.setAxes(4,1, "time(sec)", 1/2, 25, "distance(m)");
+				var xfunction=null;
+				var yfunction=null;
+				for (var jj=0;jj<3;jj+=1){				
+					xfunction=5/100;
+					yfunction=function(tt){return accelerations[jj]*tt*tt/2;}
+					graph_d.traceCurve(xfunction,0,ttmax[jj],yfunction,colours3[jj]);
+					
+					if(jj===2){graph_d.addLabel(6,yfunction(8),"racingcar", colours3[jj]);} //tt=8;v=80
+					else {graph_d.addLabel(8.25, yfunction(8)-2,this.veh[jj],colours3[jj]);}
+				
+				}
+				//yfunction = function(tt){return (20*(tt-3)+accelerations[7]*(tt-3)*(tt-3)/2+60);}
+				//graph_d.traceCurve(1/16,3,ttmax[0],yfunction,"black");
+			
+				var title="GRAPH of DISTANCE covered versus TIME";
+				if(window.innerWidth<=1250){longtext =new LongText(text2,34,8);}
+				else{longtext =new LongText(text2,45,8);}  //longtext.input.value =text2;
+			
+				this.titletxt=new DText(sc_nb,[25,25,window.innerWidth/2,30]);
+				this.titletxt.setTitle(title);
+		}		  
+		else if (sc_nb===5){//distance as sum of increased average speed x time
+				if(window.innerWidth<=1250){longtext =new LongText(text3,26,16); longtext.input.style.left=window.innerWidth*3/5;}
+				else{longtext =new LongText(text3,45, 12);}	///longtext.input.rows=12; longtext.input.value =text3;
+				integration= new distance_as_integration_of_speed();
+				this.titletxt=new DText(sc_nb,[25,25,window.innerWidth*3/5,30]);
+				this.titletxt.setTitle("Distance as sum of increased average speed x time");
+ 				startbutton.buttoncanvas.width=160;
+				startbutton.drawButton();
+			}
+			
+		else if (sc_nb===6){startbutton.buttoncanvas.width=0; 
+			
+				if(window.innerWidth<=1250){longtext =new LongText(text7,34,10);}
+					else{longtext =new LongText(text7,40,6);}
+					longtext.input.style.left=window.innerWidth/4;
+	
+		}
+		else if ((sc_nb===7)||(sc_nb===8)){///deceleration for traffic signal 7 : car , 8 :truck
+				startbutton.buttoncanvas.width=160;
+				startbutton.drawButton(); 
+				scene= new Scene(sc_nb);
+				scene.initialize(sc_nb);//scene.tt=0;
+				scene.draw();
+				if(window.innerWidth<=1250){
+					graph_d=new Graphpaper("graph_d","distance versus time graph",[window.innerWidth-270,200,264,420]);
+					graph_v=new Graphpaper("graph_v", "speed versus time graph",[window.innerWidth-540,200,264,420]);
+					}
+				else{
+					graph_d=new Graphpaper("graph_d","distance versus time graph",[window.innerWidth-410,200,410,420]);
+					graph_v=new Graphpaper("graph_v", "speed versus time graph",[window.innerWidth-820,200,410,420]);
+					}
+					graph_d.drawbg();
+					graph_d.setAxes(4,1, "time(sec)", 5/10, 25, "distance(m)");
+					graph_d.setStyle("14px Verdana");
+					graph_v.drawbg();
+					graph_v.setAxes(4,1, "time(sec)", 2, 5, "speed(m/sec)");
+					}
+				
+		else if (sc_nb===9){
+				startbutton.buttoncanvas.width=0;
+				this.titletxt=new DText(sc_nb,[25,25,window.innerWidth/2,30]);
+				this.titletxt.setTitle("DISTANCE covered during DECELERATION");
+				if(window.innerWidth<=1250){longtext =new LongText(text5,30,16);longtext.input.style.left=window.innerWidth/2;}
+					else{longtext =new LongText(text5,45,11);}
+				deceleration= new Decelerationgraph();
+				}
+		else if ((sc_nb===10)||(sc_nb===11)){
+				startbutton.buttoncanvas.width=160;
+				startbutton.drawButton();
+					titletxt=new DText(sc_nb,[25,2,window.innerWidth/2,25]);
+					titletxt.setTitle("Deceleration during collision");
+					scene= new Scene(sc_nb);
+					scene.initialize(sc_nb);		
+					scene.draw();
+					if(window.innerWidth<=1250){
+						graph_d=new Graphpaper("graph_d","distance versus time graph",[window.innerWidth-270,200,264,420]);
+						graph_v=new Graphpaper("graph_v", "speed versus time graph",[window.innerWidth-540,200,264,420]);
+						}
+					else{
+						graph_d=new Graphpaper("graph_d","distance versus time graph",[window.innerWidth-410,200,410,420]);
+						graph_v=new Graphpaper("graph_v", "speed versus time graph",[window.innerWidth-820,200,410,420]);
+						}
+					graph_d.drawbg();
+					graph_d.setAxes(4,1, "time(sec)", 5/10, 25, "distance(m)");
+			 		graph_d.setStyle("14px Verdana");
+					graph_v.drawbg();
+					graph_v.setAxes(4,1, "time(sec)", 2, 5, "speed(m/sec)");
+				
+				}
+		else if(sc_nb===12){
+					document.getElementById("the_div").removeChild(startbutton.buttoncanvas);
+					document.getElementById("the_div").removeChild(nextbutton.buttoncanvas);
+					if(window.innerWidth<=1250){longtext =new LongText(text6,34,16);}
+					else{longtext =new LongText(text6,45,9);}
+					longtext.input.style.left=window.innerWidth/4;
+	
+					}
+	}///end of nextrun
+	this.resolvebutton= function(whichbutton){ 
+		if(window.timer==null){
+		if((whichbutton==button1)&&(startbutton.label=="START")){
+			if((sc_nb<3)||(sc_nb===7)||(sc_nb===8)||(sc_nb===10)||(sc_nb===11)){
+				scene.draw();	
+				window.timer=setInterval (Accel.loop,30);} 
+			else if (sc_nb===5){
+				window.timer=setInterval(Accel.loop,350);}
+								
+			}
+		/*else if((whichbutton==button1)&&(startbutton.label=="STOP")){
+			scene.stop();
+		else if((whichbutton==button1)&&(startbutton.label=="GO")){
+			scene.go();}*/
+		else if((whichbutton==button2)||((whichbutton==button1)&&(startbutton.label=="RESTART"))){
+			if(window.timer==null){
+			//this.allobjects=new Array(scene.canvas, graph_v.graphcanvas, graph_d.graphcanvas,integration.graph_v.graphcanvas,integration.graph_d.graphcanvas,dtext.textcanvas,longtext.input,this.titletxt.textcanvas);
+			var toRemove=null;
+			switch(sc_nb){
+				//case 0 : toRemove=new Array(scene.canvas, graph_v.graphcanvas,graph_d.graphcanvas,scene.dtext.textcanvas,Accel.titletxt.textcanvas); break;
+					
+				case 0: case 1: case 2: case 7: case 8: toRemove=new Array(scene.canvas, graph_v.graphcanvas,graph_d.graphcanvas,scene.dtext.textcanvas); break;
+				case 3:  toRemove= new Array(graph_v.graphcanvas,longtext.input, Accel.titletxt.textcanvas); break;
+				case 4: toRemove= new Array(graph_d.graphcanvas,longtext.input, Accel.titletxt.textcanvas); break;
+				case 5: toRemove=new Array(graph_v.graphcanvas,graph_d.graphcanvas,longtext.input,Accel.titletxt.textcanvas); break;
+				case 6: longtext.input.style.left=window.innerWidth/2;
+						toRemove= new Array(longtext.input);
+						break;
+				case 9: toRemove=new Array(longtext.input, Accel.titletxt.textcanvas, deceleration.graph_d.graphcanvas); break;
+				case 10: case 11 : toRemove=new Array(scene.canvas, graph_v.graphcanvas,graph_d.graphcanvas,scene.dtext.textcanvas, titletxt.textcanvas); break;
+				case 12: toRemove= new Array(longtext.input); break;
+				default :
+				}
+			for (var i=0;i<toRemove.length;i++)
+				{document.getElementById("the_div").removeChild(toRemove[i]);}
+			if(whichbutton==button2){sc_nb+=1;}
+			Accel.nextrun();
+				
+			}
+		}
+		}}
+			
+	 this.loop=function(){
+		if((sc_nb<3)||(sc_nb===7)||(sc_nb===8)||(sc_nb===10)||(sc_nb===11)){
+			
+			var dt=30 /1000;
+			scene.step(dt);
+			}
+		else if (sc_nb===5){
+			var dt=1;
+			integration.step(dt);
+			}
+		/*else if (sc_nb===9){
+			var dt=1/16;
+			deceleration.step(dt);
+			}*/
+		}
+	}
+
+window.addEventListener("load",function(){Accel.initialize(imgpix,Accel.nextrun)});
+
+	</script></div>
+</body>
+</html    

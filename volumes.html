@@ -1,0 +1,473 @@
+ <!DOCTYPE HTML>
+<html lang="en">
+<head> 
+<meta charset="UTF-8"/>
+
+</head>
+<body  bgcolor="orange">
+	<div id='the_div' bgcolor="orange">
+	<canvas id='cubes'></canvas><!--width="1300" height="650" -->
+	<canvas id="startbutton"></canvas>
+	<canvas id="nextbutton"></canvas>
+	</div>
+	<script >
+	var colorChoice1=["rgb(177,215,100)","rgb(188,233,167)","rgb(175,182,44)"];
+var colorChoice2=["rgb(232,213,74)","rgb(245,193,128)","rgb(220,172,171)"];
+var colorChoice3=["rgb(236,155,184)","rgb(228,163,228)","rgb(213,185,102)"];
+var colorChoice4=["rgb(232,213,74)","rgb(245,193,128)","rgb(172,185,44)"];
+var colorChoice5=["rgb(232,160,44)","rgb(249,200,130)","rgb(274,198,253)"];
+
+//cuboid=null;
+longtext1=null; 
+longtext2=null;
+titletext=null;//var scene=null;
+window.timer=null;
+var smallcube=null;
+var bigcube=null;
+var medcube=null;
+var dmcube=null;
+text1="We are going to work with cubes : fitting small ones into bigger ones" ;
+text2="Let's start with a cube of side = 2 units and a small cube of side = 1 unit. How many small cubes are needed to fill the 2 unit-side cube?";
+text3="8 unit cubes to fill the cube of side=2 units. 8 is 2x2x2 or 2\u00B3";
+text4="Now a cube of side=3 units and the same small unit cube. How many small cubes to fill the cube of side 3 units?";
+text5="27 unit cubes in the cube of side of 3 units. That is 3 x 3 x 3 or 3\u00B3";
+text6="Now, let's try with a big cube of side=10 units. How many small cubes of side 1 unit will we need to fill the big cube of side=10 units?";
+text7="Already 100 small cubes for 1 layer";
+text8="500 small cubes in 5 layers";
+text9="1000 small cubes to fill the big cube of side 10 units. That is 10 x 10 x 10 or 10\u00B3";
+text10="What if the side of the big cube is 100 times the side of the tiny cube? Can you see the tiny cube in the middle of the big cube? Let's line up series of 100 tiny cubes along the side of the big cube";
+text11= "We have added 1000 tiny cubes and are far from a full cube. At this speed we will need 3 hours to fill the big cube. Let's try it another way."
+text12="Instead of using 100 tiny cubes of 1 unit side (total length=100 units), we can use 10 cubes of 10 unit-side (total length=100 units). But remember that to fill a 10 unit-side cube we need 1000 unit cubes. Now we are ready to align those 10 unit-side cubes, each containing 1000 unit cubes , into our 100 unit-side cube. We count by steps of 1000";
+text13="1000000 unit cubes in the cube with side of 100 units. That is 100 x 100 x 100 or 100\u00B3";
+text14="A cube of side 10cm (=1dm) has a volume of 1dm\u00B3 and has a capacity of 1 liter. A cm\u00B3 has a capacity of 1 milliliter. \n 1dm\u00B3 (1 liter) has a capacity of 1000cm\u00B3 (or 1000 milliliters). \n\n 1m=100cm, so  1m\u00B3 is 1000000cm\u00B3. \n In the last animation, you can consider the big cube as 1m\u00B3, the medium cube as 1dm\u00B3(1 liter) , the tiny cube as 1cm\u00B3 (1ml). So, \n  1m\u00B3=1000 liters=1000000 ml.";
+  
+var Cuboid=function(c, ll, hh)
+	{outlineOnly=false;
+	this.Ax=new Array(3);
+	this.Ay=new Array(3);
+	this.hiddenPoint=new Array(2);
+	var j=0;
+	for (j=0;j<3;j++)
+		{this.Ax[j]=new Array(4); this.Ay[j]=new Array(4);}
+	var sx=0; var sy=c+hh;
+	//frontface
+	this.Ax[0][0]=sx; this.Ax[0][1]=sx+c; this.Ax[0][2]=sx+c; this.Ax[0][3]=sx;
+	this.Ay[0][0]=sy; this.Ay[0][1]=sy; this.Ay[0][2]=sy-c; this.Ay[0][3]=sy-c;
+	//right face
+	this.Ax[1][0]=sx+c; this.Ax[1][1]=sx+c+ll; this.Ax[1][2]=sx+c+ll; this.Ax[1][3]=sx+c;
+	this.Ay[1][0]=sy; this.Ay[1][1]=sy-hh; this.Ay[1][2]=sy-c-hh; this.Ay[1][3]=sy-c;
+	//upperface
+	this.Ax[2][0]=sx; this.Ax[2][1]=sx+c; this.Ax[2][2]=sx+c+ll; this.Ax[2][3]=sx+ll;
+	this.Ay[2][0]=sy-c; this.Ay[2][1]=sy-c; this.Ay[2][2]=sy-c-hh; this.Ay[2][3]=sy-c-hh;
+	
+	this.hiddenPoint[0]=sx+ll; this.hiddenPoint[1]=sy-hh; ///hidden point needed for outlineonly drawings
+	this.ctx2=null;
+			  
+	this.drawCuboid=function(colChoice, outlineOnly){
+			this.cubecanvas=document.createElement('canvas');
+			this.cubecanvas.height= c+hh+2 ; 
+			this.cubecanvas.width=c+ll+2;
+			this.ctx2 = this.cubecanvas.getContext('2d');
+		 //this.ctx2.translate(0.5,0.5);  
+			
+		for(face=0; face<3; face++)
+			{if(outlineOnly==false){this.ctx2.fillStyle=colChoice[face];}
+			 this.ctx2.strokeStyle="black";
+			 this.ctx2.beginPath();
+			//this.ctx.fillRect(Ax[face][0],Ay[face][0],c,c);
+			 this.ctx2.moveTo(this.Ax[face][0], this.Ay[face][0]);
+			 for(j=0; j<4; j++)
+				{this.ctx2.lineTo(this.Ax[face][j], this.Ay[face][j]);}
+			 this.ctx2.closePath();//Ax[face][0], Ay[face][0]);
+		if(outlineOnly==true){
+				this.ctx2.moveTo(this.Ax[0][0], this.Ay[0][0]);
+				this.ctx2.lineTo(this.hiddenPoint[0], this.hiddenPoint[1]);
+				this.ctx2.lineTo(this.Ax[2][3], this.Ay[2][3]);
+		
+				this.ctx2.moveTo(this.hiddenPoint[0], this.hiddenPoint[1]);
+				this.ctx2.lineTo(this.Ax[1][1], this.Ay[1][1]);}
+		 if(outlineOnly==false){			
+				this.ctx2.fill();} 
+			 this.ctx2.stroke();
+			 }
+		//cubimg=cuboid.toDataURL("image/png");
+		//return cubecanvas;
+	  }
+	  this.filledcube=function(d,ll,hh){
+			 this.ctx2.strokeStyle="black";
+			 this.ctx2.translate(0.5,0.5);  
+			this.ctx2.beginPath();
+			 for(j=0; j<10; j+=1)
+				{	this.ctx2.moveTo(this.Ax[2][0]+j*ll, this.Ay[2][0]-j*hh);//top horizontals
+					this.ctx2.lineTo(this.Ax[2][1]+j*ll, this.Ay[2][1]-j*hh);
+					this.ctx2.lineTo(this.Ax[1][0]+j*ll, this.Ay[1][0]-j*hh);//right side verticals
+					this.ctx2.moveTo(this.Ax[2][0], this.Ay[2][0]);
+					}
+						 
+			this.ctx2.closePath();	
+			this.ctx2.stroke();
+		  this.ctx2.beginPath();
+			
+			for(j=0; j<10; j++)
+				{	this.ctx2.moveTo((this.Ax[0][0]+j*d), this.Ay[0][0]);//verticals
+					this.ctx2.lineTo(this.Ax[2][0]+j*d, this.Ay[2][0]);
+					this.ctx2.lineTo(this.Ax[2][3]+j*d, this.Ay[2][3]);
+					this.ctx2.moveTo(this.Ax[0][0], this.Ay[0][0]-j*d);//horizontals
+					this.ctx2.lineTo(this.Ax[1][0], this.Ay[1][0]-j*d);
+					this.ctx2.lineTo(this.Ax[1][1], this.Ay[1][1]-j*d);
+					//this.ctx2.moveTo(this.Ax[2][0]+j*ll, this.Ay[2][0]-j*hh);//top horizontals
+					//this.ctx2.lineTo(this.Ax[2][1]+j*ll, this.Ay[2][1]-j*hh);
+					//this.ctx2.lineTo(this.Ax[1][0]+j*ll, this.Ay[1][0]-j*hh);//right side verticals
+					this.ctx2.moveTo(this.Ax[0][0], this.Ay[0][0]);
+					}
+						 
+			this.ctx2.closePath();
+			this.ctx2.stroke();
+			this.ctx2.restore();}
+	 } 
+  var LongText=function(mytext,nbcols,nbrows,upordown){
+	//var lines =new Array();   
+	//this.measureTextlength(mytext);
+	this.input= document.createElement("TEXTAREA");
+	this.input.style="position:absolute";
+	if(upordown==1){this.input.style.top=Math.floor(window.innerHeight/8)+"px";}
+	else{this.input.style.top=upordown+"px";}
+	this.input.style.left=window.innerWidth/2+"px";
+	this.input.style.background="rgb(255,196,136)"; //background="light orange";
+	//this.input.style.color="black";
+	//this.input.id="text"+qnb;
+			
+	this.input.style.font="normal 20px Verdana";
+	this.input.cols=nbcols;//50;
+	this.input.rows=nbrows; //12;
+	this.input.value=mytext;
+	document.getElementById("the_div").appendChild(this.input);
+	
+	
+} 
+ var TitleText=function(title,nbcols){
+	this.input= document.createElement("TEXTAREA");
+	this.input.style="position:absolute";
+	this.input.style.top=20+"px";
+	this.input.style.textAlign="center" ;
+	this.input.style.background="rgb(255,196,136)"; 
+	this.input.style.zIndex="20";
+				
+	this.input.style.font="normal 22px Arial";
+	this.input.cols=nbcols;//50;
+	this.input.rows=1;
+	this.input.value=title;
+	document.getElementById("the_div").appendChild(this.input);
+		
+	this.setTitle=function(title){
+		this.input.value=title;
+		}
+	}	
+var KButton=function(canvasId,lbl,coords){
+	this.buttoncanvas= document.getElementById(canvasId);
+	this.buttonctx=this.buttoncanvas.getContext('2d');
+	this.buttoncanvas.width=coords[2]; //200;
+	this.buttoncanvas.height=coords[3];//40;
+	this.width=this.buttoncanvas.width; //200;
+	this.height=this.buttoncanvas.height;
+	
+	this.label=lbl;
+	this.buttoncanvas.style="position:absolute; "
+	this.buttoncanvas.style.left=coords[0]+"px"; 
+	this.buttoncanvas.style.top=coords[1]+"px";
+	//this.buttoncanvas.style.zIndex="5";
+		
+	this.drawButton=function(){
+		this.buttonctx.fillStyle="rgb(255,196,136)";
+		this.buttonctx.fillRect(0,0,this.width,this.height);
+		this.buttonctx.fillStyle="black"; 
+			//int labelll=fm.stringWidth(label); int offset=(width-labelll)/2; if (offset<0) offset=0;
+		this.buttonctx.font="25px Arial";	
+		var lblw=this.buttonctx.measureText(this.label).width;
+		this.buttonctx.fillText(this.label,  (this.width-lblw)/2, this.height - 5);
+	}
+	
+	this.buttoncanvas.onclick= function(){
+		Cubes.resolvebutton(this);}//function(parent){parent.resolve(this);
+	}
+var Cubes=new function(){
+		this.cleared=false;
+  	this.initialize = function()
+	{
+		this.canvas = document.getElementById('cubes');
+		this.canvas.width=window.innerWidth;
+		this.canvas.height=window.innerHeight;
+		this.canvas.style.position='absolute';
+		this.canvas.style.top="0px";
+		this.canvas.style.left="10px";
+		//this.canvas.style.zIndex="1";
+		this.qnb=1;
+		startbutton=new KButton("startbutton","Start Animation", [Math.floor(window.innerWidth/5),Math.floor(window.innerHeight-60),200,40]);
+		nextbutton=new KButton("nextbutton","NEXT", [Math.floor(2*window.innerWidth/5),Math.floor(window.innerHeight-60),100,40]);
+			nextbutton.drawButton();
+		this.counter=0;	
+		this.ctx = this.canvas.getContext && this.canvas.getContext('2d');
+			if(!this.ctx) { return alert("Upgrade your browser to see this app"); }
+			else {this.animation();}
+		
+	}
+
+	this.nextquestion=function(){
+		//console.log("qnb"+this.qnb);	
+		//console.log(document.getElementById("the_div").childNodes);	
+		this.ctx.fillStyle="orange";
+		this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+		nextbutton.buttoncanvas.width=0;
+		startbutton.buttoncanvas.width=260;
+		startbutton.drawButton();
+				
+		if(this.qnb===2){
+			var d=64,ll=40, hh=26;
+			var nbcub=2; 
+			bigcube= new Cuboid(2*d,2*ll,2*hh);
+			bigcube.drawCuboid(colorChoice4,false);
+		
+			smallcube= new Cuboid(d,ll,hh);
+			smallcube.drawCuboid(colorChoice2,false);
+			this.ctx.drawImage(bigcube.cubecanvas, 50, 100);
+			this.ctx.drawImage(smallcube.cubecanvas, 100+bigcube.cubecanvas.width,100+bigcube.cubecanvas.height-smallcube.cubecanvas.height);
+			//this.ctx.drawImage(Cubes.bigcube.cubecanvas, 100-nbcub*ll, 200-nbcub*d);
+			//this.ctx.drawImage(smallcube.cubecanvas, 20+nbcub*d, 200-(nbcub*d/2));
+			
+			longtext1= new LongText(text2, 33,4,1);//input.value= longtext.cols=33;longtext.rows=4;	
+			titletext=new TitleText("A cube of 2 x 2 x 2 units",33);
+			}
+	if(this.qnb===3){
+		var d=64,ll=40, hh=26;
+		smallcube=new Cuboid(d,ll,hh);
+		smallcube.drawCuboid(colorChoice2,false);
+		var nbcub=3; 
+		bigcube= new Cuboid(nbcub*d,nbcub*ll,nbcub*hh);
+		bigcube.drawCuboid(colorChoice4,false);
+		
+			this.ctx.drawImage(bigcube.cubecanvas, 50, 100);
+			this.ctx.drawImage(smallcube.cubecanvas, 100+bigcube.cubecanvas.width, 100+Math.floor(bigcube.cubecanvas.height/2));
+			titletext.setTitle("A cube of 3 x 3 x 3 units");	
+		longtext1=new LongText(text4, 33,4,1);
+		}
+	if(this.qnb===4){
+		var d=32,ll=20, hh=13;
+		smallcube= new Cuboid(d,ll,hh);
+		smallcube.drawCuboid(colorChoice2,false);
+		var nbcub=10; 
+		bigcube= new Cuboid(nbcub*d,nbcub*ll,nbcub*hh);
+		bigcube.drawCuboid(colorChoice4,false);
+		this.ctx.drawImage(bigcube.cubecanvas, 50, 50);
+		this.ctx.drawImage(smallcube.cubecanvas, 100+bigcube.cubecanvas.width, 100+Math.floor(bigcube.cubecanvas.height/2));
+		titletext.setTitle("A cube of 10 x 10 x 10 units");	
+		longtext1=new LongText(text6,33,4,1); //, 33,4,1);
+		}
+	if(this.qnb===5){
+		var d=4,ll=2, hh=2;
+		smallcube= new Cuboid(d,ll,hh);
+		smallcube.drawCuboid(colorChoice5,false);
+		var nbcub=100; 
+		bigcube= new Cuboid(nbcub*d,nbcub*ll,nbcub*hh);
+		bigcube.drawCuboid(colorChoice4,false);
+		this.ctx.drawImage(bigcube.cubecanvas, 50, 10);
+		this.ctx.drawImage(smallcube.cubecanvas, Math.floor(bigcube.cubecanvas.width/2), 100+Math.floor(bigcube.cubecanvas.height/2));
+		titletext.setTitle("A cube of 100 x 100 x 100 units");	
+		longtext1=new LongText(text10,33,6,1); //, 33,4,1);
+		}
+	if(this.qnb===6){
+		startbutton.buttoncanvas.width=0;
+		var d=4,ll=2, hh=2;
+		smallcube= new Cuboid(d,ll,hh);
+		smallcube.drawCuboid(colorChoice5,false);
+		var nbcub=10; 
+		medcube= new Cuboid(nbcub*d,nbcub*ll,nbcub*hh);
+		medcube.drawCuboid(colorChoice4,true);
+		this.ctx.drawImage(medcube.cubecanvas, 50, 100);
+		longtext1=new LongText(text12,33,10,1); //, 33,4,1);
+		this.counter=-1;
+		window.timer=setInterval(function(){Cubes.loop(smallcube.cubecanvas, nbcub,d, ll,hh,1000);},10); 
+		setTimeout(function(){
+			Cubes.ctx.fillStyle="black";
+			Cubes.ctx.font="normal 20px Arial";
+			Cubes.ctx.fillText("1000 units", 150,150);
+			startbutton.buttoncanvas.width=260;startbutton.drawButton();},10000);
+		}	
+	if(this.qnb===7){
+		startbutton.buttoncanvas.width=0;
+		longtext1=new LongText(text14,54,10,1);
+		longtext1.input.style.left=Math.floor(window.innerWidth/4)+"px";
+			 
+		}
+		}
+	this.animation=function(){
+		nextbutton.buttoncanvas.width=100;
+		startbutton.buttoncanvas.width=0;
+		this.ctx.fillStyle="orange";
+		this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+		if(this.qnb===1){
+				longtext1=new LongText(text1, 54,2,Math.floor(window.innerHeight/2));
+				//longtext1.input.style.top=Math.floor(window.innerHeight/2)+"px";
+				longtext1.input.style.left=Math.floor(window.innerWidth/4)+"px";
+				nextbutton.drawButton(); 
+				}
+	
+		if(this.qnb===2){
+			var d=64,ll=40, hh=26;
+			var nbcub=2; 
+			bigcube.drawCuboid(colorChoice4,true);///outLineOnly =true
+			this.ctx.drawImage(bigcube.cubecanvas, 50, 100);
+			this.counter=-1;
+			window.timer=setInterval(function(){Cubes.loop(smallcube.cubecanvas, nbcub,d, ll,hh,8)},300); 
+			setTimeout(function(){longtext2=new LongText(text3,33,4,300);nextbutton.drawButton();},2400);
+			} 
+		
+	if(this.qnb===3){
+		var d=64,ll=40, hh=26;
+		var nbcub=3; 
+		bigcube.drawCuboid(colorChoice4,true);
+		this.ctx.drawImage(bigcube.cubecanvas, 50, 100);
+		Cubes.counter=-1;
+		window.timer=setInterval(function(){Cubes.loop(smallcube.cubecanvas, nbcub,d, ll,hh,27)},200); 
+		setTimeout(function(){longtext2=new LongText(text5,33,4,300);nextbutton.drawButton();},5400);
+		//for (var i=0;i<(nbcub*nbcub*nbcub) ;i++)
+			//{(function(place){window.timer=setTimeout(function(){Cubes.loop(Cubes.cuboid, nbcub,d, ll,hh,place)},i*300);})(i);}
+		}
+	if(this.qnb===4){
+		var d=32,ll=20, hh=13;
+		//smallcube= new Cuboid(d,ll,hh, colorChoice2);
+		//smallcube.cubecanvas=smallcube.drawCuboid(colorChoice2,false);
+		bigcube.drawCuboid(colorChoice4,true);
+		this.ctx.drawImage(bigcube.cubecanvas, 50, 50);
+		var nbcub=10; 
+		Cubes.counter=-1;
+		//longtext1=new LongText(text6,33,4,1); //, 33,4,1);
+			
+		window.timer=setInterval(function(){Cubes.loop(smallcube.cubecanvas, nbcub,d, ll,hh,100)},100); 
+		setTimeout(function(){longtext2=new LongText(text7,33,4,350);clearInterval(window.timer);
+						window.timer=setInterval(function(){Cubes.loop(smallcube.cubecanvas, nbcub,d, ll,hh,1000)},20); },10000);
+		setTimeout(function(){longtext2.input.value=text8;},18000);
+		setTimeout(function(){longtext2.input.value=text9;nextbutton.drawButton();},28000);
+	
+		}
+	if(this.qnb===5){
+		var d=4,ll=2, hh=2;
+		//smallcube= new Cuboid(d,ll,hh, colorChoice2);
+		//smallcube.cubecanvas=smallcube.drawCuboid(colorChoice2,false);
+		var nbcub=100; 
+		bigcube.drawCuboid(colorChoice4,true);
+		this.ctx.drawImage(bigcube.cubecanvas, 50, 10);
+		
+		Cubes.counter=-1;
+		window.timer=setInterval(function(){Cubes.loop(smallcube.cubecanvas, nbcub,d, ll,hh,1000)},5); 
+			setTimeout(function(){longtext2=new LongText(text11,33,6,350);
+			nextbutton.drawButton();},5000);
+			}
+	if(this.qnb===6){	
+		titletext.setTitle("A cube of 100 x 100 x 100 units");	
+	
+		var d=4,ll=2, hh=2;
+		var nbcub=10;
+		dmcube= new Cuboid(nbcub*d,nbcub*ll,nbcub*hh);
+		dmcube.drawCuboid(colorChoice5,false);
+		dmcube.filledcube(d,ll,hh); 
+		//this.ctx.drawImage(dmcube.cubecanvas, 800, 400);
+		var d=40,ll=20, hh=20;
+		bigcube.drawCuboid(colorChoice4,true);
+		this.ctx.drawImage(bigcube.cubecanvas, 50, 10);
+		Cubes.counter=-1;
+		window.timer=setInterval(function(){Cubes.loop(dmcube.cubecanvas, nbcub,d, ll,hh,100)},80); 
+		setTimeout(function(){clearInterval(window.timer);
+						window.timer=setInterval(function(){Cubes.loop(dmcube.cubecanvas, nbcub,d, ll,hh,1000)},20); },8000);
+		setTimeout(function(){
+						longtext2=new LongText(text13,33,6,430);nextbutton.drawButton();},26000);
+		document.getElementById("the_div").removeChild(titletext.input);
+	}
+			
+	
+	}//end of animation
+	this.loop=function(acuboid, nbcub,d, ll,hh,max){
+		//Cubes.ctx.drawImage(acuboid,200+d*(j%nbcub)-ll*Math.floor(j/nbcub),200-d*Math.floor(i/(nbcub*nbcub))+hh*Math.floor(j/nbcub));
+		Cubes.counter+=1;
+		var startpointy=100+(nbcub-1)*d;
+		if(this.qnb===4){startpointy=50+(nbcub-1)*d;} 
+		else if (this.qnb===5){startpointy=10+(nbcub-1)*d;}
+		else if ((this.qnb===6)&&(d===4)){startpointy=100+(nbcub-1)*d;}
+	  	else if ((this.qnb===6)&&(d===40)){startpointy=10+(nbcub-1)*d;}
+	  		
+		var startpointx=50+(nbcub-1)*ll;
+		
+		//console.log("startpoint"+startpoint);
+		if(Cubes.counter>=max){clearInterval(window.timer); return;}//setTimeout(,i*300)
+		else{
+		var j=Cubes.counter%(nbcub*nbcub); 
+		//console.log("nbof cubes"+Cubes.counter);
+		//if((nbcub===2)||(nbcub===3)){Cubes.ctx.drawImage(acuboid,startpointx+d*(j%nbcub)-ll*Math.floor(j/nbcub),startpointy-d*Math.floor(Cubes.counter/(nbcub*nbcub))+hh*Math.floor(j/nbcub));}
+		Cubes.ctx.drawImage(acuboid,startpointx+d*(j%nbcub)-ll*Math.floor(j/nbcub),startpointy-d*Math.floor(Cubes.counter/(nbcub*nbcub))+hh*Math.floor(j/nbcub));
+		////write numbers on th ecubes
+		if(this.qnb<5){
+			Cubes.ctx.fillStyle="black";
+			Cubes.ctx.font="normal 18px Arial";
+			if(Cubes.counter<101){
+				Cubes.ctx.fillText(""+(Cubes.counter+1),startpointx+d*(j%nbcub)-ll*Math.floor(j/nbcub)+5,startpointy+d+2-d*Math.floor(Cubes.counter/(nbcub*nbcub))+hh*Math.floor(j/nbcub));
+				}
+			//else if(Cubes.counter<1001){
+			else if((Cubes.counter+1)%100==0){
+				Cubes.ctx.fillText(""+(Cubes.counter+1),startpointx+d*(j%nbcub)-ll*Math.floor(j/nbcub)+2,startpointy+d+2-d*Math.floor(Cubes.counter/(nbcub*nbcub))+hh*Math.floor(j/nbcub));
+				//Cubes.ctx.fillText(""+(Cubes.counter+1),startpointx+d*9*nbcub+2,startpointy+d+2-d*Math.floor(Cubes.counter/(nbcub*nbcub))+hh*Math.floor(j/nbcub));
+				}
+			}
+		else if ((this.qnb===6)&&(d===40)){
+			Cubes.ctx.fillStyle="yellow";
+		if(Cubes.counter<101){
+			Cubes.ctx.font="normal 12px Arial";
+			Cubes.ctx.fillText(""+(Cubes.counter+1)*1000,startpointx+d*(j%nbcub)-ll*Math.floor(j/nbcub)+2,startpointy+d+2-d*Math.floor(Cubes.counter/(nbcub*nbcub))+hh*Math.floor(j/nbcub));
+				}
+			else if((Cubes.counter+1)%100==0){
+			Cubes.ctx.font="normal 20 px Arial";
+		Cubes.ctx.fillText(""+(Cubes.counter+1)*1000,startpointx+d*9-ll*9+2,startpointy+d+2-d*Math.floor(Cubes.counter/(nbcub*nbcub))+hh*Math.floor(j/nbcub));
+				}
+		Cubes.ctx.fillStyle="orange";
+		Cubes.ctx.fillRect(700,370,100,50);
+		Cubes.ctx.fillStyle="black";
+		Cubes.ctx.font="normal 20px Arial";
+		Cubes.ctx.fillText(""+(Cubes.counter+1)*1000,700,400);
+		
+			}
+		}
+	  }
+	this.resolvebutton= function(whichbutton){ 
+		
+		if(whichbutton==nextbutton.buttoncanvas){
+			//if(window.timer==null){
+			var toRemove=null;
+			switch(this.qnb){		
+					case 1:  toRemove= new Array(longtext1.input); break;
+					case 2 : case 3: case 4: case 5 : case 6:	//	console.log("parentNode"+smallcube.cubecanvas.parentNode);//=the_div for longtext1,null for cubecanvas
+								toRemove= new Array(longtext1.input,longtext2.input); break;
+					case 7: toRemove= new Array(longtext1.input); break;
+					default :
+				}
+			if(toRemove!=null){for (var i=0;i<toRemove.length;i++)
+				{document.getElementById("the_div").removeChild(toRemove[i]);}}
+			this.qnb+=1;
+			//console.log("in resolvebutton"+this.qnb);
+			Cubes.nextquestion();
+				
+			//}
+		}
+		if(whichbutton==startbutton.buttoncanvas){
+			Cubes.animation();
+		}
+		}
+			
+
+}
+window.addEventListener("load",function(){Cubes.initialize()});
+
+ 
+	
+	
+	</script>
+	</body>
+</html>
+
