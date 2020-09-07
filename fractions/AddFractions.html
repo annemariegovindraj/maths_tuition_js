@@ -1,0 +1,424 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="description" content=" demonstration for equivalent fraction and addition of fractions in math class 3 and 4 "/>
+<meta name="author" content="annemarie.govindraj">
+<meta name="keywords" content="teaching aid, math, fractions, animations ">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<style>
+	.body {
+		background: #16c460;
+		position: absolute;
+		left: 50px;
+		margin: 20px;
+		font-size: 25px;}
+	.button-div {
+		position : absolute;
+		width : 140px;
+		height : 120px;
+		right : 10px;
+		}
+	.button {
+		background: #3ef992;
+	</style>
+</head>
+<body class='body'>
+<div id="the_div">
+<!--input type="button" class="button" id="startbutton" value="Show Sum"--></input><br>
+
+<canvas id="workarea" width="400px" height="70px"></canvas>
+<canvas id="pieChart" width="600px" height="300px"></canvas>
+
+<p class="button-div" >
+<canvas class="button" id='startbutton'></canvas>
+<canvas class="button" id='nextbutton'></canvas>
+</p></div>
+<script>
+var examples=["1/3+1/3","1/5+2/5","1/6+1/3","1/8+3/4","1/3+1/2","1/5+1/3","1/4+2/3","1/4+1/6","1/5+4/7","1/6+4/9","1/4+1/2","1/3+1/2","1/3+1/4","1/6+1/2","1/2+1/5","1/5+1/3","1/2+1/8","2/5+1/3","2/3+2/9","1/2+2/5","1/2+3/8","3/4+1/6"];
+var nbsolvedex=9;
+var colorChoice=["rgb(255,50,50)","rgb(255,233,120","rgb(255,242,62)","rgb(120,239,238)","rgb(228,85,228)","rgb(245,177,245)","rgb(120,233,238)","rgb(138,184,208)","rgb(199,92,186)","rgb(255,242,0)"];
+var piebg="rgb(180,255,200";
+var radius=146;
+var step=0;
+
+var KButton=function(canvasId,lbl,coords){///dont copy this, some problem with height
+	this.buttoncanvas= document.getElementById(canvasId);
+	this.buttonctx=this.buttoncanvas.getContext('2d');
+	this.width=130;//coords[0];
+	this.height=40;//coords[1];
+	this.buttoncanvas.width=130;
+	this.buttoncanvas.height=40;
+	this.value=lbl;
+	//this.buttoncanvas.style="position:absolute; "
+	//this.buttoncanvas.style.left=coords[2]+"px"; 
+	//this.buttoncanvas.style.top=coords[3]+"px";
+
+	this.draw=function(){
+		this.buttonctx.fillStyle=piebg; //"rgb(62,249,146)";///#3ef992;
+		this.buttonctx.fillRect(0,0,this.width,this.height);
+		this.buttonctx.fillStyle="black"; 
+			//int labelll=fm.stringWidth(label); int offset=(width-labelll)/2; if (offset<0) offset=0;
+		this.buttonctx.font="normal 22px ARIAL";	
+		//var lblw=this.buttonctx.measureText(this.label).width;
+		this.buttonctx.fillText(this.value,  5, this.height - 5);
+		}
+	this.buttoncanvas.onclick=function(){
+			AddFractions.resolveButton(this);
+		}
+	/*this.changeWidth=function(x){
+		this.width=x;
+		this.buttoncanvas.width=x;
+		this.draw();
+		}*/
+	this.hide=function(){this.buttoncanvas.width=0;}
+	this.show=function(){this.buttoncanvas.width=130;
+					this.draw();}
+	this.changeLabel=function(label){
+		this.value=label;
+		this.draw();}
+	}
+var LongText=function(mytext,nbcols,nbrows){
+	this.input= document.createElement("TEXTAREA");
+	this.input.style="position:absolute";
+	this.input.style.background=piebg; //"rgb(62,249,146)"; //background="lightgreen";
+	this.input.style.color="black";
+	this.input.style.font="normal 22px Verdana";
+	//this.width=600;
+	//this.height=160;
+	//if(window.innerWidth<=1250){expectedwidth=50; expectedheight=16;}
+	//			else{expectedwidth=80; expectedheight= 12;}	
+	this.input.cols=nbcols;//50;
+	this.input.rows=nbrows; //12;
+	this.input.value=mytext;
+	this.input.style.top=(window.innerHeight-220)+"px";
+	this.input.style.left="0px";
+	document.getElementById("the_div").appendChild(this.input);
+
+	this.refreshtext=function(mytext,nbrows){
+		this.input.value=mytext;
+		this.input.rows=nbrows;}
+} 
+var Fraction=function(N,D,color,startangle){
+	this.N=N;
+	this.D=D;
+	this.color=color||"red";
+	this.startangle=startangle||0;
+	this.drawf=function(context,x,y){//x,y are thecoord of fraction line
+				context.fillStyle="black";
+				context.font="normal 24px Verdana";
+				context.fillText(""+this.N,x+5, y-10);
+				context.fillText(""+this.D,x+5, y+25);
+				
+				context.strokeStyle="black";
+				context.beginPath();
+				context.moveTo(x,y);
+				context.lineTo(x+40,y);
+				context.stroke();
+				}
+		}
+var AddFractions=new function(){
+/*text of examples is parsed (single digits)  in readSum and stored as object Fraction f[0],f[1] with color info; Fraction.drawf draws the numbers in the workarea
+*/	
+		this.pieChart = document.getElementById('pieChart');
+		this.piectx = this.pieChart.getContext && this.pieChart.getContext('2d');
+		this.canvas = document.getElementById('workarea');///small 400*70 pixels for writing fractions
+		this.ctx = this.canvas.getContext && this.canvas.getContext('2d');
+		this.comments=["When denominators are the same, we add numerators, leaving the common denominator",	
+			"Here the denominators are not the same, but we see that one denominator is a multiple of the other: ",
+			" so we rewrite the sum, now they have a common denominator.",
+			"if we add the fractions as such, we don't reach any of the denominators, neither ",
+			". Let's try cutting the pie into smaller pieces, we'll try with the smallest common denominator :",
+			"Which is the smallest common denominator? ",
+			"Very good, next exercise"]
+		longtext=new LongText("",48,4);	
+		this.f=Array(5);//holds  fraction in sum as f[0],f[1],
+		startbutton=new KButton("startbutton","START", [110,40]);
+		nextbutton=new KButton("nextbutton","NEXT",[110,40]);
+		this.theta=0;
+		this.ex=0;
+		startbutton.draw();
+		
+	this.nextQuestion=function(){console.log(document.getElementById("the_div").childNodes);
+		this.ctx.fillStyle=piebg;
+		this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+		
+		if(AddFractions.ex>=examples.length){
+			this.ctx.fillStyle="black";
+			this.ctx.font="normal 20px Verdana";
+			this.ctx.fillText("END OF EXERCISES",10,40);}
+		else {
+			AddFractions.readSum();///creates object Fraction f[0],f[1] with .N and .D and fixed color
+			AddFractions.fractionsOnCommonDenom();
+			AddFractions.drawSum();
+			this.piectx.fillStyle=piebg;
+			this.piectx.fillRect(0,0,this.pieChart.width, this.pieChart.height);
+			AddFractions.fillFraction(0,AddFractions.f[0],0);
+			AddFractions.drawPie(0,AddFractions.f[0].D, 0);
+			AddFractions.fillFraction(1,AddFractions.f[1],0);
+			AddFractions.drawPie(1,AddFractions.f[1].D, 0);
+			this.theta=0;
+			AddFractions.transX=3*radius+10;;
+			var mytext="", nbrows=4;
+			
+			if(AddFractions.ex<2){ mytext =""+AddFractions.comments[0];nbrows=2;}
+			else if (AddFractions.ex<4){ mytext=""+AddFractions.comments[1]+AddFractions.f[1].N+"/"+AddFractions.f[1].D+"="+AddFractions.f[3].N+"/"+AddFractions.f[3].D+AddFractions.comments[2] ; nbrows=4;}
+			else if (AddFractions.ex<10){ mytext+=this.comments[3]+AddFractions.f[0].D+" nor "+AddFractions.f[1].D + this.comments[4]+AddFractions.f[2].D+ ". We find : "+AddFractions.f[0].N+"/"+AddFractions.f[0].D+"="+AddFractions.f[2].N+"/"+AddFractions.f[2].D+" and "+AddFractions.f[1].N+"/"+AddFractions.f[1].D+"="+AddFractions.f[3].N+"/"+AddFractions.f[3].D; 
+				nbrows=5;
+				}
+			else if (AddFractions.ex<=examples.length){ mytext+=this.comments[5];nbrows=1;}//nbsolvedex=9
+			longtext.refreshtext(mytext,nbrows);
+			startbutton.draw();
+			nextbutton.hide();
+				
+		if(AddFractions.ex<2){
+				startbutton.show();
+				//nextbutton.hide();
+				}
+			
+		else if(AddFractions.ex<4){
+					setTimeout(function(){step=1; AddFractions.moveIt();//shows the piecharts with common denominator
+					startbutton.show();	},3000);
+					}
+		else if(AddFractions.ex>nbsolvedex){
+			startbutton.changeLabel("Show Result"); 
+			startbutton.show();
+			nextbutton.hide();}
+		else if ((AddFractions.ex>=4)&&(AddFractions.ex<7)){setTimeout(function(){step=5; AddFractions.moveIt();},2000);///juxtapose piepieces, not reaching line
+					setTimeout(function(){step=1; AddFractions.moveIt();
+											startbutton.show();
+										},8000);
+					}
+			else if((AddFractions.ex>=7)||(AddFractions.ex<10)){setTimeout(function(){step=1; AddFractions.moveIt();//AddFractions.drawSum();
+			
+			startbutton.show();
+			//nextbutton.show();
+			//if(AddFractions.ex>nbsolvedex){ mytext+=AddFractions.f[2].D;nbrows=2;
+			//longtext.refreshtext(mytext,nbrows);
+			//	}
+			 
+			},2000);}
+			
+		}	}
+	
+	this.moveIt=function(){///have to repaint bg and first pie because mvt 
+			startbutton.buttoncanvas.width=0;
+			AddFractions.drawbg();	
+			if(step==0){
+				AddFractions.fillFraction(0,AddFractions.f[0],0);
+				AddFractions.drawPie(0,AddFractions.f[0].D, 0);}
+			else if(step<4){
+				AddFractions.fillFraction(0,AddFractions.f[2],0);///f[2] same as f[0] for fillfraction
+				AddFractions.drawPie(0,AddFractions.commonDen, 0);
+				
+				if(step==2){//turning the piepiece
+					if(AddFractions.theta>=(2*Math.PI*(AddFractions.f[0].N)/(AddFractions.f[0].D))){step=3;}					
+					}
+				AddFractions.fillFraction(1,AddFractions.f[3],AddFractions.theta);
+				AddFractions.drawPie(1,AddFractions.f[3].D,AddFractions.theta);
+				AddFractions.drawSum();
+				if(step==3){////moving the second pie 
+					if(AddFractions.transX<=(radius+2)){
+								//nextbutton.buttoncanvas.width=110;
+								//nextbutton.draw();
+								step=4;
+								}
+							}
+				}
+			else if (step==4){			
+						nextbutton.show();
+						AddFractions.fillFraction(0, AddFractions.f[2],0);
+						AddFractions.fillFraction(0,AddFractions.f[3], 2*Math.PI*(AddFractions.f[0].N)/(AddFractions.f[0].D));
+						AddFractions.drawPie(0,AddFractions.f[3].D,0);
+						AddFractions.drawSum();
+						clearInterval(window.timer);
+						window.timer=null;
+						}
+			else if (step==5){
+					AddFractions.fillFraction(0, AddFractions.f[0],0);
+					AddFractions.fillFraction(0,AddFractions.f[1], 2*Math.PI*(AddFractions.f[0].N)/(AddFractions.f[0].D));
+					AddFractions.drawPie(0,AddFractions.f[0].D,0);
+					AddFractions.drawSum();
+					}	
+			}
+			
+	this.drawPie=function(which,nbparts,startAngle){///draws only outlines in black
+		var startangle=startAngle||0;
+		
+		var centreX= (which==0)?(2+radius):(3*radius+10);
+		//console.log("nbparts  "+nbparts);
+		//console.log(Math.cos(2*Math.PI/nbparts),Math.sin(2*Math.PI/nbparts));
+		this.piectx.strokeStyle="black";
+		this.piectx.beginPath();
+		//this.piectx.arc(centreX,radius,radius,0,2*Math.PI,true);
+		//this.piectx.stroke();
+		for(var i=0;i<nbparts;i++){
+			this.piectx.beginPath();
+			if(step<2){
+				this.piectx.arc(centreX,radius,radius,0,2*Math.PI,true);
+				this.piectx.moveTo(centreX,radius);
+				this.piectx.lineTo(centreX+Math.floor(radius*Math.cos(2*i*Math.PI/nbparts)),radius-Math.floor(radius*Math.sin(2*i*Math.PI/nbparts)));
+				}
+			else if (step==2){	
+				this.piectx.arc(centreX,radius,radius,0,2*Math.PI,true);
+				this.piectx.moveTo(centreX,radius);
+				this.piectx.lineTo(centreX+Math.floor(radius*Math.cos(startangle+2*i*Math.PI/nbparts)),radius-Math.floor(radius*Math.sin(startangle+2*i*Math.PI/nbparts)));
+				}
+			else if (step==3){
+				if(which==0){
+						this.piectx.arc(centreX,radius,radius,0,2*Math.PI,true);
+						this.piectx.moveTo(centreX,radius);
+						this.piectx.lineTo(centreX+Math.floor(radius*Math.cos(2*i*Math.PI/nbparts)),radius-Math.floor(radius*Math.sin(2*i*Math.PI/nbparts)));
+						}
+				else if(which==1){
+						this.piectx.arc(AddFractions.transX,radius,radius,0,2*Math.PI,true);
+						this.piectx.moveTo(AddFractions.transX,radius);
+						this.piectx.lineTo(AddFractions.transX+Math.floor(radius*Math.cos(startangle+2*i*Math.PI/nbparts)),radius-Math.floor(radius*Math.sin(startangle+2*i*Math.PI/nbparts)));
+						}
+				}
+			else if ((step==4)||(step==5)){
+				this.piectx.arc(centreX,radius,radius,0,2*Math.PI,true);
+				this.piectx.moveTo(centreX,radius);
+				this.piectx.lineTo(centreX+Math.floor(radius*Math.cos(startangle+2*i*Math.PI/nbparts)),radius-Math.floor(radius*Math.sin(startangle+2*i*Math.PI/nbparts)));
+				}
+			
+			this.piectx.stroke();//-sin to go ccw
+			}
+		}
+	
+	this.fillFraction=function(which,f,startangle){
+		
+		var endangle=startangle+2*Math.PI*f.N/f.D;
+		var centreX= (which==0)?(2+radius):(3*radius+10);
+		if((step==3)&&(which==1)){centreX=AddFractions.transX;}
+		else if(step==4) {centreX=(2+radius);}
+		this.piectx.fillStyle=f.color;
+		this.piectx.beginPath();
+		this.piectx.moveTo(centreX,radius);
+		this.piectx.arc(centreX,radius,radius,-startangle,-endangle,true);
+		this.piectx.closePath()
+		this.piectx.fill();
+		}
+		
+	this.readSum=function(){
+		var index=0;
+		var numerator=parseInt(examples[AddFractions.ex].charAt(index));
+		index+=2;
+		var denominator=parseInt(examples[AddFractions.ex].charAt(index));
+		AddFractions.f[0]= new Fraction(numerator,denominator,colorChoice[2*(AddFractions.ex%4)]);////chged from 4 to
+		index++;
+		var sign=(examples[AddFractions.ex].charAt(index));
+		index++;
+		var numerator=parseInt(examples[AddFractions.ex].charAt(index));
+		index+=2;
+		var denominator=parseInt(examples[AddFractions.ex].charAt(index));
+		AddFractions.f[1]=new Fraction(numerator,denominator,colorChoice[2*(AddFractions.ex%4)+1]);
+		}
+	this.primeFactors=function(nb){
+		var PrimeFactors=[];
+		//var j=0;
+		var quotient=nb;
+		var i=2;
+		while(quotient!=1){
+			if(quotient%i==0){PrimeFactors.push(i);
+								//j++;
+								quotient=quotient/i;}
+			else {i++;}}
+		//	console.log("Primes of "+nb+" :  "+PrimeFactors);
+			return PrimeFactors;
+			}
+			
+	this.getCommonDenom=function(f1,f2){
+			var ii=0,jj=0,commondenom=1;
+			var primesa=AddFractions.primeFactors(f1.D);///array containing all prime dividers of f1.D. e.g 56=2*2*2*7
+			var primesb=AddFractions.primeFactors(f2.D);
+			while((ii<primesa.length)&&(jj<primesb.length)){
+				if(primesa[ii]==primesb[jj]){commondenom*=primesa[ii]; ii++; jj++;}
+				else if(primesa[ii]<primesb[jj]){commondenom*=primesa[ii];ii++}
+				else {commondenom*=primesb[jj];jj++;}
+				}
+			while (ii<primesa.length){commondenom*=primesa[ii]; ii++}
+			while (jj<primesb.length){commondenom*=primesb[jj];jj++;}
+			return commondenom;
+			}
+	this.fractionsOnCommonDenom=function(){
+		AddFractions.commonDen=AddFractions.getCommonDenom(AddFractions.f[0],AddFractions.f[1]);
+		//console.log("commondenom : "+AddFractions.commonDen);
+		var newNum0=(AddFractions.f[0].N)*AddFractions.commonDen/(AddFractions.f[0].D);
+		AddFractions.f[2]=new Fraction(newNum0,AddFractions.commonDen,colorChoice[2*(AddFractions.ex%4)]);
+		var newNum1=(AddFractions.f[1].N)*AddFractions.commonDen/(AddFractions.f[1].D);
+		//console.log("newNum : "+newNum0+","+newNum1);
+		AddFractions.f[3]=new Fraction(newNum1,AddFractions.commonDen,colorChoice[2*(AddFractions.ex%4)+1]);
+		AddFractions.sum=new Fraction((newNum1+newNum0),AddFractions.commonDen);
+		}
+	this.drawSum=function(){///has to be redrawn everytime because of "moveit"
+			var W=2, Xo=5,Yo=40, space=50;
+			this.ctx.fillStyle=piebg;
+			this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+			this.ctx.fillStyle="black";
+			this.ctx.font="normal 20px Verdana";
+			if((step==0)||(step==5)){
+				for ( var i=0;i<2;i++){
+					AddFractions.f[i].drawf(AddFractions.ctx,Xo+5+(i*1.5)*space, Yo);
+					}
+					this.ctx.fillText("+",Xo+space, Yo+2);
+					this.ctx.fillText("=",Xo+2.5*space, Yo+2);
+				}
+				//this.ctx.fillText(""+AddFractions.SumNum,Xo+5+(i*2)*space, Yo-10);
+				//this.ctx.fillText(""+AddFractions.getCommonDenom(),Xo+5+(i*2)*space, Yo+25);
+			else {
+				if(AddFractions.ex<2){
+					for ( var i=0;i<2;i++){
+						AddFractions.f[i].drawf(AddFractions.ctx,Xo+5+(i*1.5)*space, Yo);
+						}
+						this.ctx.fillText("+",Xo+space, Yo+2);
+						this.ctx.fillText("=",Xo+2.5*space, Yo+2);
+						
+						if(step>=4){
+							AddFractions.sum.drawf(AddFractions.ctx, Xo+5+(3)*space,Yo);}
+						}
+				else if(AddFractions.ex>=2){
+					if(step>=4){AddFractions.sum.drawf(AddFractions.ctx, Xo+5+(6)*space,Yo);}
+					for ( var i=0;i<4;i++){
+					AddFractions.f[i].drawf(AddFractions.ctx,Xo+5+(i*1.5)*space, Yo);
+					}
+				this.ctx.fillText("+",Xo+space, Yo+2);
+				this.ctx.fillText("=",Xo+2.5*space, Yo+2);
+				this.ctx.fillText("+",Xo+4*space, Yo+2);
+				this.ctx.fillText("=",Xo+5.5*space, Yo+2);
+				}
+			}
+		}
+	this.drawbg=function(){	
+		this.piectx.fillStyle=piebg;
+		this.piectx.fillRect(0,0,this.pieChart.width,this.pieChart.height);
+		}
+	
+
+	this.loop=function(){
+		if(step==2){AddFractions.theta+=Math.PI/256;}
+		else if (step==3){AddFractions.transX-=2;}
+		AddFractions.moveIt();
+		}
+	
+	this.resolveButton=function(whichbutton){
+		//console.log("button clicked"+whichbutton);
+		if(whichbutton==startbutton.buttoncanvas){
+			if(AddFractions.ex<10){////demo
+					step=2;
+					window.timer=setInterval(AddFractions.loop,30);}
+			else if(AddFractions.ex>9){step=4;AddFractions.moveIt();} ///exercise
+			}
+		else if (whichbutton==nextbutton.buttoncanvas){
+			//AddFractions.longtext.input.remove();
+			AddFractions.ex++; 
+			step=0;
+			AddFractions.nextQuestion();
+			}	
+		}		
+		
+}	
+window.addEventListener("load",function(){AddFractions.nextQuestion(0);});
+</script> 
+</body>
+</html>  

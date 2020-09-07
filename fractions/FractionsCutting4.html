@@ -1,0 +1,674 @@
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="description" content=" demonstration for fraction concept in math for class 3 "/>
+<meta name="author" content="annemarie.govindraj">
+<meta name="keywords" content="teaching aid, math, fractions, animations ">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+</head>
+<body class="body" >
+<div id="the_div" width="100%" height="100%">
+<!--input type="textarea"  id="comments" width="400px" height="100px"--></input>
+<canvas class="canvas" id="scenes"></canvas>
+<canvas class="button" id='startbutton' width="110px" height="40px" value="START"></canvas>
+<canvas class="button" id='nextbutton' width="110px" height="40px" value="NEXT"></canvas>
+</div>
+<script>
+///scnb=0, 1 :cut apple in 2, then 4; in scnb=2 compare 1/2, 1/4
+///scnb=3,4 :cat cake into 3 then 6 pieces; in scnb 5, compare 1/3,1/6
+///scnb=6,7,8,9 divide mangoes
+///scnb=10, 11, 12:  pieces of square, rect 1/2, 1/4, 1/ 
+var imgpix={bigapple : {x: 0,y:0, w:297, h:292},apple2pieces : {x:299,y:0, w:601, h:279}, apple1half: {x:299, y:0, w: 302, h: 279}, apple2ndhalf:{x:601, y:0, w:300, h:279},
+	apple4piecestop:{x:0,y:302,w:437,h:172},apple4piecesbottom:{x:433,y:302,w:469,h:172}, apple1stquarter : {x:0, y:302,w:245, h:172},apple2ndquarter :{x:245, y:302,w:192, h:172},apple3thquarter: {x:433, y:302,w:242, h:172}, apple4thquarter: {x:675, y:302,w:227, h:172},
+	cake1:{x:0,y:485,w:375,h:256},cake3pieces:{x:376, y:476, w:524, h:272},cake6pieces:{x:37,y:742,w:840,h:205}, cakelowerhalf:{x:0, y:616, w:319, h:125},cakeupper3sixths:{ x:45,y:742,w:412,h:205},cakelower3sixths:{ x:457,y:742,w:423,h:205}, cake1stthird: {x:376,y:491,w:171,h:248},cake2ndthird :{x:552,y:489,w:167,h:238},cake3ththird: {x:722,y:487,w:180,h:240},
+	cake1stsixth:{x: 29,y:741, w:140, h:201},cake2ndsixth:{x: 178,y:741, w:135, h:201},cake3thsixth:{x:315,y:741, w:141, h:201}, cake4thsixth:{x:462,y:758, w:135, h:185}, cake5thsixth:{x:600,y:758, w:140, h:185}, cake6thsixth:{x:740,y:758, w:140, h:185},
+	knife1:{x:15,y:951,w:450,h:32},knife2:{x:902,y:1,w:162,h:206},basket: {x:929, y:224,w:262, h:189}, basketlowerhalf:{x:929,y:256,w:262, h:157},mangovert:{x:960, y:442, w:66,h:89},mangoflat:{x:1043, y:457, w:95,h:64},mangoright:{x:1062, y:560, w:63,h:81},mangoleft:{x:968, y:574, w:77,h:67}};
+var allfractions=[[[1,2],[2,2]],[[1,4],[3,4],[4,4]],[[1,2],[1,4]],[[1,3],[2,3],[3,3]],[[1,6],[4,6],[6,6]],[[1,3],[1,6]],[[1,3]],[[2,6],[4,6]],[[3,6],[6,6]],[[3,9],[6,9],[9,9]],[[2,4],[2,4],[2,4]],[[4,8],[4,8],[4,8]],[[2,8],[2,8],[2,8],[2,8],[2,8]]];
+window.timer=null;
+var scene=null;
+var startbutton=null;
+var sc_nb=0;///first panel is scnb=0
+//var fractionpanel=null;
+var animover=-1;
+//////texts, instances values
+var title=null;
+var comment=null;
+var smallbla=[[0],[1],[" half"," halves"],[" third"," thirds"],[" fourth"," fourths"],[""," "],[" sixth", " sixths"]];
+	var xcentered= Math.floor((window.innerWidth-600)/2);
+	var xforcomment=Math.min(xcentered+600-100,720);//Math.min(window.innerWidth-120,720);
+var sqw=100;
+var txt=new Array(10);
+txt[0]="We cut the apple in 2 equal pieces";
+txt[1]="We cut the apple in 4 equal pieces";
+txt[2]="Which piece is bigger: 1 half or 1 fourth ";
+txt[3]="We cut the cake in 3 equal pieces";
+txt[4]="We cut the cake in 6 equal pieces";
+txt[5]="Which piece is bigger: 1 third or 1 sixth ";
+txt[6]="What about taking a half, or a third  of 6  mangoes?";//\n Think as if we cut the basket into 3 ";
+
+var Spritesheet= new function(){	 
+		this.map={};
+		this.load=function(imgpix, callback){
+			this.map=imgpix;
+			this.sheetimage=new Image();
+			this.sheetimage.src="bigapples5.gif";
+			this.sheetimage.onload=	callback;
+			}
+		this.draw=function(context, name, x,y){
+			context.drawImage(this.sheetimage,this.map[name].x,this.map[name].y, this.map[name].w,this.map[name].h,x,y,this.map[name].w,this.map[name].h);
+			}
+		this.drawpieceof=function(context, name, x,y,l){
+			context.drawImage(this.sheetimage,this.map[name].x+this.map[name].w-l,this.map[name].y, l,this.map[name].h,x+this.map[name].w-l,y,l,this.map[name].h);
+			}
+		this.scaleddraw=function(context, name, x,y,scale){
+			context.drawImage(this.sheetimage,this.map[name].x,this.map[name].y, this.map[name].w,this.map[name].h,x,y,(this.map[name].w)*scale,(this.map[name].h)*scale);
+			}
+		}
+				
+var KButton=function(canvasId,lbl,coords){
+	this.width=coords[2]; //110 or 200
+	this.height=coords[3];//40;
+	this.label=lbl;
+	this.canvas= document.getElementById(canvasId);
+	this.buttonctx=this.canvas.getContext('2d');
+	this.canvas.style="position:absolute; "
+	this.canvas.style.left=coords[0]+"px";//"10px"; 
+	this.canvas.style.top=coords[1]+"px";//"450px";
+	this.backgroundcolor="#9ec5fe";
+	//this.canvas.width=coords[2];
+	//this.canvas.height=coords[3];
+	this.changeLabel=function(lbl){
+			this.label=lbl;
+			this.drawButton();
+			}
+	this.putBackgroundColor=function(color){
+		this.backgroundcolor=color; 
+		}
+	this.show=function(){
+		this.canvas.width=110;// or 200
+		this.drawButton();
+		}
+	
+	this.drawButton=function(){
+		//this.backgroundcolor=(sc_nb<4)? "#9ec5fe": "rgb(255,242,138)";
+		this.buttonctx.fillStyle=this.backgroundcolor; 
+		this.buttonctx.fillRect(0,0,this.width,this.height);
+		this.buttonctx.fillStyle="black"; 
+		this.buttonctx.font="normal 24px Verdana";	//int labelll=fm.stringWidth(label); int offset=(width-labelll)/2; if (offset<0) offset=0;
+		//this.buttonctx.font="80px Arial";	
+		var lblw=this.buttonctx.measureText(this.label).width;
+		this.buttonctx.fillText(this.label,  (this.width-lblw)/2, this.height -5);
+		}
+	
+	this.canvas.onclick= function(){//console.log(this);startGame();}//
+		Cutting.resolvebutton(this);
+		}
+	}	
+var Fraction=function(N,D){
+	this.N=N;
+	this.D=D;
+	//this.canvas=document.createElement("canvas");
+	//this.context=this.canvas.getContext('2d');
+	//this.width=this.canvas.width=50;
+	//this.height=this.canvas.height=60;
+	//this.color=color||"red";
+	//this.startangle=startangle||0;
+	////we draw directly on the main canvas
+	this.drawf=function(context,x,y){//x,y are thecoord of fraction line
+				context.fillStyle="black";
+				context.font="normal 24px Verdana";
+				context.fillText(""+this.N,x+5, y-8);
+				context.fillText(""+this.D,x+5, y+21);
+				
+				context.strokeStyle="black";
+				context.beginPath();
+				context.moveTo(x,y);
+				context.lineTo(x+30,y);
+				context.stroke();
+				}
+		}
+		
+var LongText=function(mytext,nbcols,nbrows){
+	this.input= document.createElement("TEXTAREA");
+	this.input.style="position:absolute";
+	this.input.style.border='none';
+	var backgroundcolor=(sc_nb<6)? "#9ec5fe": "rgb(255,242,138)";
+				this.input.style.background=backgroundcolor; 
+	this.input.style.color="black";
+	this.input.style.font="normal 22px Verdana";
+	this.input.cols=nbcols;//50;
+	this.input.rows=nbrows; //12;
+	this.input.value=mytext;
+	//this.input.style.top="20px";
+	//this.input.style.left="50px";
+	document.getElementById("the_div").appendChild(this.input);
+
+	this.putStyle=function(w,h,x,y){
+		this.input.style.width=w+"px";
+		this.input.style.height=h+"px";
+		this.input.style.top=y+"px";
+		this.input.style.left=x+"px";	
+		}
+	this.refreshText=function(mytext,nbrows){
+		var backgroundcolor=((sc_nb<6)||(sc_nb>9))? "#9ec5fe": "rgb(255,242,138)";
+		this.input.style.background=backgroundcolor; 
+		this.input.value=mytext;
+		this.input.rows=nbrows;
+		}
+} 
+
+var Scene = function(){
+		this.canvas= document.getElementById("scenes");
+		this.contx=this.canvas.getContext('2d');
+		this.whole=null;
+		this.parts=[['apple2pieces' ,'apple1half', 'apple2ndhalf'],['apple4piecestop','apple1stquarter','apple2ndquarter','apple3thquarter', 'apple4thquarter'],['apple1half','apple1stquarter'],
+		['cake3pieces', 'cake1stthird','cake2ndthird','cake3ththird'],['cake6pieces', 'cake1stsixth','cake2ndsixth','cake3thsixth','cake4thsixth', 'cake5thsixth','cake6thsixth'],['cake3ththird', 'cake6thsixth']];	
+		//this.canvas.style="position:absolute"
+		this.canvas.style.left="0px"; 
+		this.canvas.style.top="0px";
+			//this.canvas.width="600px";
+			//this.canvas.height="400px";
+		this.width=window.innerWidth;//this.canvas.clientWidth;
+		this.height=window.innerHeight;
+		this.canvas.width=window.innerWidth;//this.canvas.clientWidth;
+		this.canvas.height=window.innerHeight;
+		
+		//document.getElementById("the_div").appendChild(this.canvas);
+		
+	this.initialize=function(sc_nb){	
+		////allfractions is a three D array, fractionsnow contains all fractions we will show after the one cutting animation
+		///nbofexercises is its length, exercisenow =counter 
+		///inside each fraction, numerator denominator
+		if (sc_nb==13) {this.draw();}
+		else{
+		this.fractionsnow=allfractions[sc_nb];
+		if(this.sc_nb>allfractions.length){contx.fillStyle="black";
+				contx.font="normal 28px Verdana";
+				contx.fillText("End of lesson",200, 200);
+				}
+		else {this.nbofexercises=this.fractionsnow.length;}
+		this.exercisenow=0;
+		if(sc_nb<6){this.partsnow=this.parts[sc_nb];}///strings pointing via  imgpix to drawings
+		else{
+			this.offset=[imgpix["basket"].x, imgpix["basket"].y];
+			this.mx=[943-this.offset[0],940-this.offset[0],1020-this.offset[0],1016-this.offset[0],1100-this.offset[0],1115-this.offset[0],963-this.offset[0],1020-this.offset[0],1081-this.offset[0]];
+			this.my=[318-this.offset[1],243-this.offset[1],332-this.offset[1],270-this.offset[1],311-this.offset[1],249-this.offset[1],180-this.offset[1],214-this.offset[1],175-this.offset[1]];
+			this.mnames=["mangoleft","mangovert","mangoflat","mangoleft","mangoright","mangoright","mangovert","mangoflat","mangovert"];
+			}
+		this.numerator=1;
+		this.t=0;
+		this.app=Array(2);
+		this.kn=Array(2); //coord of knives in scene
+		this.knI=Array(2);
+		this.knII=Array(2);
+			animover=-1;
+		switch(sc_nb){
+			case 0 : case 1:
+				this.whole="bigapple";
+				this.app=[150,60];
+				this.knII=[193,20];//diagonal knife
+				this.knI=[185,82];//	horizontal knife
+				this.tlimit=275;
+				nextbutton.canvas.width=0;
+				break;
+			case 3 : case 4:
+				this.whole="cake1";
+				this.app=[150,60];
+				this.knII=[179,76];
+				this.knIV=[267,76];//diagonal knife
+				this.knI=[189,164];
+				this.tlimit=162;
+				comment.putStyle(0,0,20,450);//320
+				nextbutton.canvas.width=0;
+				break;
+			case 2: case 5:
+				this.app=[150,120];
+			
+				comment.putStyle(600,70,xcentered,450);//320
+				window.setTimeout( function(){
+					if(sc_nb==2){comment.refreshText("The fraction with the smaller denominator is the bigger piece. 1/2 is bigger than 1/4");}
+					else if (sc_nb==5){comment.refreshText("The fraction with the smaller denominator is the bigger piece. 1/3 is bigger than 1/6");}},2000);
+				break;
+		
+			case  6: 
+				this.app=[ Math.floor((window.innerWidth-262)/2),160];
+				
+				this.appcov=[this.app[0],this.app[1]+32];//[150, 132];
+					comment.putStyle(600,70,xcentered,80);
+				comment.refreshText("The denominator shows us \n in how many heaps we divide the mangoes",2);
+				this.whole="basket";
+				startbutton.canvas.width=0;
+				nextbutton.show();
+				break;
+			
+			case 7: case 8: case 9 : //in  7=> third of 6 mangoes;in 8=> half of 6 mangoes 9=thirds of 9 mangoes
+				this.nbofmangoes=this.fractionsnow[this.exercisenow][1];
+				this.mangheap=this.fractionsnow[0][0];///nbof mangoes per heap, in [0] it's the unit fraction eg.2/4 for 1/2,stays for all scnb
+				this.denominator=this.nbofmangoes/this.mangheap;
+				title.putStyle(600,40,xcentered,10);///width, height,x,y
+				title.refreshText("How many mangoes in one"+ smallbla[this.denominator][0]+" of "+ this.nbofmangoes+" mangoes?",1);
+				comment.input.style.width=0;
+				this.whole="basket";
+				this.app=[250,60];
+				this.appcov=[this.app[0],this.app[1]+32];//[150, 132];
+				this.tlimit=160;
+				this.widthofpiece=imgpix[this.mnames[2]].w;  
+				if(sc_nb==7){
+					this.glider1start=[1020-this.offset[0]+this.app[0],396-this.offset[1]+this.app[1]];
+					this.glider2start=[1110-this.offset[0]+this.app[0],396-this.offset[1]+this.app[1]];
+					this.glider1end=[50+3*(this.widthofpiece-10),360+this.app[1]];
+					this.glider2end=[50+6*(this.widthofpiece-10),360+this.app[1]];
+					}
+				startbutton.show();
+				this.endmx=Array(this.nbofmangoes);
+				for (var j=0; j<this.nbofmangoes; j++){
+					var mheap=Math.floor(j/this.fractionsnow[0][0]);
+					this.endmx[j]=25+Math.floor(mheap*3*this.widthofpiece)+(this.widthofpiece-20)*(j%this.mangheap);
+					}
+				this.deltax=Array(this.nbofmangoes);
+				this.deltay=Array(this.nbofmangoes);
+				for (var i=0; i<this.nbofmangoes;i++){
+						 this.deltax[i]=-this.mx[i]-this.app[0]+this.endmx[i]; 
+						this.deltay[i]=-this.my[i]+360; 
+						}
+				this.mxdyn=Array(this.nbofmangoes);
+				this.mydyn=Array(this.nbofmangoes);
+				break;
+			case 10 : case 11: case 12 :
+				this.app=[250,200];
+				title.putStyle(600,40,xcentered,10);///width, height,x,y
+				this.nbofcols=this.fractionsnow[0][1]/2;
+				var divider=this.HCF(this.fractionsnow[0][0],this.fractionsnow[0][1])
+				this.numerator=this.fractionsnow[0][0]/divider;
+				this.denominator=this.fractionsnow[0][1]/divider;
+				title.refreshText("How do you take one "+ smallbla[this.denominator][0]+" of this shape",1);
+				comment.input.style.width=0;
+				startbutton.canvas.width=0;
+				nextbutton.show();
+				animover=0;
+				break;
+			case 13:
+				this.draw();
+			default : alert ("EX over");
+			}
+		this.draw();
+		}
+	}
+	this.HCF= function(firstnb,secondnb){
+			var hh=1;
+			var aa=firstnb;
+			var bb=secondnb;
+			if(aa<bb){hh=aa;}
+			else{hh=bb;}
+			for (var i=hh;i>1;i--){
+				if(((aa%i)===0)&&((bb%i)===0)){return i;}
+				}
+			return 1;
+			}
+	this.step=function(dt){
+		this.t=this.t+dt;
+		 if (this.t<this.tlimit){	
+			 	if((sc_nb==4)&&(this.t<50)){this.kn2n=this.knII[1];}
+				else if(sc_nb==4){this.kn2n=this.knII[1]+this.t-50;}//calculate coord
+				else if(sc_nb<4){
+					this.kn2n=this.knII[1]+this.t;//calculate coord
+					}
+				if((sc_nb==1)||(sc_nb==4)){// horizontal knife coord
+					if ((sc_nb==4)&&(this.t>152)){}
+					else{this.kn1n= this.knI[1]+this.t;}
+					}
+				else if (sc_nb>6){
+					for (var i=0; i<this.nbofmangoes; i++){
+						this.mxdyn[i]= this.mx[i]+this.app[0]+Math.round(this.t*this.deltax[i]/this.tlimit);
+						this.mydyn[i]= this.my[i]+this.app[1]+Math.round(this.t*this.deltay[i]/this.tlimit);
+						}
+					}	
+				this.draw();
+				}
+			else if(this.t>=this.tlimit){
+				clearInterval(window.timer);
+				window.timer=null;
+				startbutton.canvas.width=0;	
+				if(sc_nb==1){
+					this.whole2="apple4piecesbottom";
+					}
+				if(sc_nb<6){
+					this.whole=this.parts[sc_nb][0];
+					this.app=[50,60];
+					animover=1;
+					}
+				nextbutton.show();
+				this.draw();
+				}
+			}	
+				
+	this.showpieces=function(){
+			if((sc_nb==2)||(sc_nb==5)){
+				this.shownparts=[];
+				this.numerator1=this.fractionsnow[0][0];
+				this.denominator1=this.fractionsnow[0][1];
+				this.numerator2=this.fractionsnow[1][0];
+				this.denominator2=this.fractionsnow[1][1];
+				this.exercisenow+=2;
+				}
+			else if(sc_nb<6){
+				this.shownparts=[];
+				this.numerator=this.fractionsnow[this.exercisenow][0];
+				this.denominator=this.fractionsnow[this.exercisenow][1];
+				//console.log(this.numerator);
+				comment.putStyle(120,40,xforcomment,70);
+				var plural=(this.numerator==1)?0:1;
+				comment.refreshText(this.numerator+smallbla[this.denominator][plural],1)
+				this.exercisenow++;
+				}
+			else if (sc_nb<10){
+				this.numerator=this.fractionsnow[this.exercisenow][0]/this.mangheap; 
+				this.denominator=this.nbofmangoes/this.mangheap;
+				}
+			this.fr=new Fraction(this.numerator,this.denominator);
+			this.drawPieces();
+	}
+		
+	this.draw=function(){
+			var backgroundcolor;
+		if((sc_nb>5)&&(sc_nb<10)){
+				backgroundcolor= "rgb(255,233,120)";}
+		else {backgroundcolor=" #6591fd";}
+			this.contx.fillStyle=backgroundcolor; 
+			this.contx.fillRect(0,0,this.width,this.height);
+		if((sc_nb==0)||(sc_nb==1)){
+			if(animover<1){
+					Spritesheet.draw(scene.contx,scene.whole,scene.app[0],scene.app[1]);
+					Spritesheet.draw(scene.contx,"knife1",scene.knI[0],scene.kn1n);
+					Spritesheet.draw(scene.contx,scene.whole,scene.app[0],scene.app[1]);
+					
+					Spritesheet.draw(scene.contx,"knife2",scene.knII[0],scene.kn2n);
+					Spritesheet.drawpieceof(scene.contx,scene.whole,scene.app[0],scene.app[1],145);///covering the knife with a piece of apple
+					
+
+				}
+			else if (animover==1){//for(var p=0; p<scene.numerator;p++){
+				Spritesheet.draw(scene.contx,scene.partsnow[0],scene.app[0],scene.app[1]);
+				if(sc_nb==1){Spritesheet.draw(scene.contx,scene.whole2,scene.app[0],scene.app[1]+172);}
+				}
+			}
+		else if(sc_nb==2){
+			Spritesheet.draw(scene.contx,scene.partsnow[0],scene.app[0],scene.app[1]);
+			Spritesheet.scaleddraw(scene.contx,scene.partsnow[1],scene.app[0]+220,scene.app[1],1.5);
+			}
+		else if((sc_nb==3)||(sc_nb==4)){
+			if(animover<1){
+				Spritesheet.draw(scene.contx,scene.whole,scene.app[0],scene.app[1]);
+				if(sc_nb==4){						
+					Spritesheet.draw(scene.contx,"knife1",scene.knI[0],scene.kn1n);
+					if(this.t>19){
+						Spritesheet.draw(scene.contx,"cakelowerhalf" ,scene.app[0],scene.app[1]+135);
+					}}
+				Spritesheet.draw(scene.contx,"knife2",scene.knII[0],scene.kn2n);
+				Spritesheet.draw(scene.contx,"knife2",scene.knIV[0],scene.kn2n);
+				var contacttime=(sc_nb==3)?60:110; //knives remain statiionary for 50 dt
+				if(this.t>contacttime){///cover the knife with cakepiece
+					 Spritesheet.draw(scene.contx,"cake2ndthird" ,scene.app[0]+105,scene.app[1]+15);//106
+					Spritesheet.draw(scene.contx,"knife2",scene.knIV[0],scene.kn2n);
+					Spritesheet.draw(scene.contx,"cake3ththird" ,scene.app[0]+205,scene.app[1]+13); //208
+					}
+				}
+			else if (animover==1){//for(var p=0; p<scene.numerator;p++){
+				if(sc_nb==4){
+					Spritesheet.draw(scene.contx,"cakeupper3sixths",scene.app[0]+40,scene.app[1]);
+					Spritesheet.draw(scene.contx,"cakelower3sixths",scene.app[0],scene.app[1]+145);
+					}
+				else {Spritesheet.draw(scene.contx,scene.partsnow[0],scene.app[0],scene.app[1]);
+					}
+			}
+		}
+		else if(sc_nb==5){
+			Spritesheet.draw(scene.contx,scene.partsnow[0],scene.app[0],scene.app[1]);
+			Spritesheet.draw(scene.contx,scene.partsnow[1],scene.app[0]+210,scene.app[1]+55);
+			//Spritesheet.draw(scene.contx,scene.partsnow[0],scene.app[0],scene.app[1]);
+			//Spritesheet.scaleddraw(scene.contx,scene.partsnow[1],scene.app[0]+220,scene.app[1],1.5);
+		}
+		else if (sc_nb==6){
+				Spritesheet.draw(scene.contx,scene.whole,scene.app[0],scene.app[1]);
+				for(var i=0; i<6;i++){
+						Spritesheet.draw(scene.contx,scene.mnames[i],  scene.mx[i]+scene.app[0],scene.my[i]+scene.app[1]);
+						}
+				Spritesheet.draw(scene.contx,"basketlowerhalf",scene.appcov[0],scene.appcov[1]);
+				}
+		else if ((sc_nb>6)&&(sc_nb<10)){
+			if(animover==-1){
+				Spritesheet.draw(scene.contx,scene.whole,scene.app[0],scene.app[1]);
+				for(var i=0; i<this.nbofmangoes;i++){
+						Spritesheet.draw(scene.contx,scene.mnames[i],  scene.mx[i]+scene.app[0],scene.my[i]+scene.app[1]);
+						}
+				Spritesheet.draw(scene.contx,"basketlowerhalf",scene.appcov[0],scene.appcov[1]);
+				comment.putStyle(200,100,this.app[0]+imgpix["basket"].w+10, this.app[1]);
+				comment.refreshText("To take "+ this.numerator+" "+smallbla[this.denominator][0]+"\n we divide into \n"+this.denominator+ " heaps. ", 3);
+				new Fraction(1,this.denominator).drawf(this.contx,this.app[0]+imgpix["basket"].w+200,this.app[1]+24);
+					}
+			else if(animover==0){
+				Spritesheet.draw(scene.contx,scene.whole,scene.app[0],scene.app[1]);
+				for(var i=0; i<this.nbofmangoes;i++){
+					Spritesheet.draw(scene.contx,scene.mnames[i],  scene.mxdyn[i],scene.mydyn[i]);
+					}
+				if(sc_nb==7){
+					this.contx.strokeStyle="black";
+					this.contx.lineWidth=3;
+					this.contx.beginPath();
+					this.contx.moveTo(this.glider1start[0],this.glider1start[1]-115);
+					this.contx.lineTo(this.glider1start[0],this.glider1start[1]);
+					this.contx.lineTo(this.glider1end[0],this.glider1end[1]);
+					this.contx.lineTo(this.glider1end[0],this.glider1end[1]+60);
+					this.contx.moveTo(this.glider2start[0],this.glider2start[1]-115);
+					this.contx.lineTo(this.glider2start[0],this.glider2start[1]);
+					this.contx.lineTo(this.glider2end[0],this.glider2end[1]);
+					this.contx.lineTo(this.glider2end[0],this.glider2end[1]+60);
+					this.contx.stroke();
+					}
+				}
+			}
+		else if ((sc_nb>9)&&(sc_nb<13)){
+					this.contx.strokeStyle="black";
+					this.contx.lineWidth=2;
+					this.contx.beginPath();
+					this.contx.moveTo(this.app[0],this.app[1]);
+					
+					for(var i=0; i<=this.nbofcols; i++){///col
+						this.contx.moveTo(this.app[0]+i*sqw,this.app[1]);
+						this.contx.lineTo(this.app[0]+i*sqw,this.app[1]+2*sqw);
+						}
+					for(var i=0; i<=2; i++){///rows
+						this.contx.moveTo(this.app[0],this.app[1]+i*sqw);
+						this.contx.lineTo(this.app[0]+this.nbofcols*sqw,this.app[1]+i*sqw);
+						}
+					this.contx.stroke();
+					}
+		else if (sc_nb==13){this.contx.fillText("END OF THE LESSON",	250,200);		
+					}
+		}
+		
+	this.drawPieces=function(){///wanted nb of cut pieces according to fraction
+		var backgroundcolor;
+			if((sc_nb>5)&&(sc_nb<10)){
+				backgroundcolor= "rgb(255,233,120)";
+				}
+			else {backgroundcolor=" #6591fd";}
+			//var backgroundcolor=(sc_nb<4)? " #6591fd": "rgb(255,233,120)";
+			this.contx.fillStyle=backgroundcolor; 
+			this.contx.fillRect(0,0,this.width,this.height);
+		if(sc_nb<6){
+			this.fr.drawf(this.contx,xforcomment+125,90);
+			for (var i=1;i<=this.numerator;i++){
+			this.shownparts.push(this.partsnow[i]);}
+			this.starty=100; //(this.numerator>3)?0:100;	
+			this.widthofpiece=imgpix[scene.shownparts[0]].w;  //shownparts[0].w]
+			//for (var i=0;i<this.shownparts.length;i++){
+			this.totalwidth=this.numerator*(this.widthofpiece);
+			//		console.log(imgpix[scene.shownparts[i].w]);
+			for (var i=0,j=0;i<this.shownparts.length;i++,j++){
+					Spritesheet.draw(scene.contx, this.shownparts[i],Math.floor((920-scene.totalwidth)/2)+j*scene.widthofpiece  ,scene.starty);
+					}
+			}
+		else if (sc_nb<10){	
+			//Spritesheet.draw(scene.contx,scene.whole,scene.app[0],scene.app[1]);
+			//this.numerator=this.fractionsnow[this.exercisenow][0]/this.mangheap;
+			var nbofheaps=this.nbofmangoes/this.mangheap;//denominator
+			for (var j=0; j<this.nbofmangoes; j++){
+				var mheap=Math.floor(j/this.fractionsnow[0][0]);///in which heaps is j
+				Spritesheet.draw(scene.contx,scene.mnames[0],25+Math.floor(mheap*3*this.widthofpiece)+(this.widthofpiece-20)*(j%this.mangheap), 360+this.app[1]);
+				}
+			title.putStyle(450,50,xcentered+42,112);
+			title.refreshText(" of "+this.nbofmangoes+" mangoes is "+this.fractionsnow[this.exercisenow][0] +" mangoes",1);
+			
+			comment.putStyle(450,50,xcentered,57);
+			var plural=(this.numerator==1)?0:1;var plurals=(this.numerator==1)?"":"s";
+			comment.refreshText("To take "+this.numerator+" "+smallbla[this.denominator][plural]+" we take "+this.numerator+" heap"+plurals,1);
+			this.fr.drawf(this.contx,xcentered,125);
+			this.contx.strokeStyle="red";
+			this.contx.lineWidth=3;
+				this.contx.beginPath();
+			//numerator= nb of heaps taken !!! mangheap=nb of mangoes per heap
+			if (this.mangheap==2){this.contx.ellipse(Math.round(this.widthofpiece+1.5*this.widthofpiece*Math.floor(this.numerator/2)),360+this.app[1]+32,Math.round(50+this.numerator*this.widthofpiece),50,0,0,2*Math.PI,true);}
+			else {this.contx.ellipse(Math.round(5+this.mangheap*this.widthofpiece*(this.numerator)/2),360+this.app[1]+32,Math.round(this.mangheap*this.widthofpiece*(this.numerator)/2),50,0,0,2*Math.PI,true);}
+			//console.log(this.mangheap+" * "+this.widthofpiece+" * "+this.numerator+ "= "+this.mangheap*this.widthofpiece*this.numerator);
+			this.contx.stroke(); 
+			this.contx.closePath();
+			this.exercisenow++;
+			}
+			else if (sc_nb>=10){	
+				this.fr.drawf(this.contx,this.app[0]-50,this.app[1]+50);
+				this.colorPalette=["#ff0000","#00ff40","#ffff00"];
+					//console.log(this.exercisenow);
+					scene.contx.fillStyle=this.colorPalette[this.exercisenow%3];
+					scene.contx.beginPath();
+					//var colToFill=1;
+						switch(this.exercisenow){///deduces from fractions in allfractions
+						case 0 ://vertical first col
+								this.contx.rect(scene.app[0],scene.app[1], sqw*this.fractionsnow[this.exercisenow][0]/2,2*sqw);
+								break;
+						case 1 ://horizontal first row
+								this.contx.rect(scene.app[0],scene.app[1],this.fractionsnow[this.exercisenow][0]*sqw,sqw);
+								break;
+						case 2 ://horiz second row
+								this.contx.rect(scene.app[0],scene.app[1]+sqw,this.fractionsnow[this.exercisenow][0]*sqw,sqw);
+								break;
+						case 3:  //horiz 1 row last 2 colums
+								if(sc_nb==10){
+									this.contx.rect(scene.app[0]+2*sqw,scene.app[1]+sqw,2*sqw,sqw);}
+								break;
+						case 4:  //vert 3 th col
+								this.contx.rect(scene.app[0]+3*sqw,scene.app[1],sqw,2*sqw);
+								break;
+						default : alert ("not enough options");
+					}
+						scene.contx.fill();
+					scene.contx.closePath();
+					this.contx.strokeStyle="black";
+					this.contx.lineWidth=2; 
+					this.contx.beginPath();
+					this.contx.moveTo(this.app[0],this.app[1]);
+					
+					for(var i=0; i<=this.nbofcols; i++){///col
+						this.contx.moveTo(this.app[0]+i*sqw,this.app[1]);
+						this.contx.lineTo(this.app[0]+i*sqw,this.app[1]+2*sqw);
+						}
+					for(var i=0; i<=2; i++){///rows
+						this.contx.moveTo(this.app[0],this.app[1]+i*sqw);
+						this.contx.lineTo(this.app[0]+this.nbofcols*sqw,this.app[1]+i*sqw);
+						}
+					this.contx.stroke();
+					if(this.exercisenow==0){var plural=(this.numerator==1)?0:1;
+						comment.putStyle(600,50,xcentered,70);
+						comment.refreshText("you can choose "+ this.numerator+" "+smallbla[this.denominator][plural] +" in different ways",1);}
+					else{comment.putStyle(200,40,this.app[0]+4*sqw+10,this.app[1]);
+						 comment.refreshText("  observe that " ,1 ); 
+						this.fr.drawf(this.contx,this.app[0]+4*sqw+25,this.app[1]+80);
+						this.contx.fillText(" = ",this.app[0]+4*sqw+60,this.app[1]+88);
+						new Fraction(this.fractionsnow[this.exercisenow][0],this.fractionsnow[this.exercisenow][1]).drawf(this.contx,this.app[0]+4*sqw+100,this.app[1]+80);
+						}
+					this.exercisenow++;
+					}
+					
+		}
+}	
+var Cutting=new function(){			
+	startbutton= new KButton('startbutton',"START",[20,550,110,40]);
+	startbutton.drawButton();
+	nextbutton=new KButton('nextbutton',"NEXT",[150,550,110,40]);
+	nextbutton.drawButton();
+	title=new LongText("",60,3);///nbrows,nbcols
+	title.putStyle(600,50,xcentered,10);///width, height,x,y
+	comment=new LongText("",80,1);
+	 xforcomment=Math.min(xcentered+600-120,720);
+	 console.log(xcentered);
+	comment.putStyle(120,40,xforcomment,70);	//this.imgnames=["bigapple","apple2pieces ","apple4pieces "];
+		
+  this.initialize = function(imgpixels,callback){//callback = nextrun
+		Spritesheet.load(imgpixels,callback);
+		}
+	this.nextrun=function(){
+		comment.refreshText("",1);
+		if((sc_nb>=6)&&(sc_nb<10)){///scnb=9 with 9 mangoes
+				startbutton.putBackgroundColor("rgb(255,242,138)");
+				nextbutton.putBackgroundColor("rgb(255,242,138)");
+				title.input.style.background= "rgb(255,242,138)";
+				comment.input.style.background= "rgb(255,242,138)";
+				}
+		else { nextbutton.putBackgroundColor("#9ec5fe");//
+				startbutton.putBackgroundColor("#9ec5fe");
+				title.input.style.background= "#9ec5fe";
+				comment.input.style.background= "#9ec5fe";
+				}
+		if(sc_nb<7){ title.refreshText(txt[sc_nb],1);}
+		if((sc_nb==6)||(sc_nb==2)||(sc_nb==5)){
+			nextbutton.show();
+			startbutton.canvas.width=0;
+			}
+		else if(sc_nb<8){startbutton.show(); 
+			nextbutton.canvas.width=0;
+			}
+		scene=new Scene();
+		scene.initialize(sc_nb);
+		scene.draw();
+		}
+ this.loop=function(){
+		if(sc_nb<2) {scene.step(2);}
+		else {scene.step(1);}
+		//scene.draw();
+			}
+			
+	this.resolvebutton= function(whichbutton){ 
+		if(window.timer==null){
+		//	console.log(" whichbutton"+whichbutton);
+			if(whichbutton==startbutton.canvas){	
+				Scene.time=0;animover=0;
+				window.timer=setInterval (Cutting.loop,30); 
+				}
+				
+			else if(whichbutton==nextbutton.canvas){
+					//console.log("sc"+sc_nb+" ex "+scene.exercisenow+allfractions[sc_nb].length);
+				if((sc_nb==6)||(sc_nb==2)||(sc_nb==5)){	
+					sc_nb++; animover=-1; scene.exercisenow=0; this.nextrun();
+					
+				//else if((sc_nb>=5)&&(animover==0)){
+					// scene.exercisenow=0; scene.showpieces();
+					}
+				else if(scene.exercisenow>=scene.nbofexercises){
+					sc_nb++;
+					if(sc_nb>=13){scene.contx.fillText("END OF THE LESSON",	250,170);
+						//scene.draw();}
+					}
+					else {scene.exercisenow=0; this.nextrun();}
+					}
+				else {scene.showpieces();//sc_nb,	scene.fractionsnow[scene.exercisenow]);
+							//console.log("fstex"+sc_nb+" , "+scene.exercisenow);
+					}
+				}
+		}
+	}
+}
+window.addEventListener("load",function(){Cutting.initialize(imgpix,Cutting.nextrun)});
+</script>
+</body>
+</html>  
