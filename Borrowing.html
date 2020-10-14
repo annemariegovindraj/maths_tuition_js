@@ -15,7 +15,6 @@
 	<canvas id="button1"></canvas>
 	<canvas id="button2"></canvas>
 	</div>
-	<script src="./Utilities.js"></script>
 	<script>
 /*
  This program is free software; you can redistribute it and/or modify
@@ -78,7 +77,33 @@ var KButton=function(canvasId,lbl,coords){
 		//console.log("clicked  "+this.parent.label);
 		Borrowing.resolveButton(this.parent.label);}//function(parent){parent.resolve(this);
 	}
+var Comment=function(mytext,coord,nbcols){
+	this.input= document.createElement("TEXTAREA");
+	this.input.cols=nbcols||40;
+	this.input.rows=5;
+	this.input.value=mytext;
+	this.input.style="position:absolute";
+	this.input.style.top=coord[1]+"px";
+	this.input.style.left=coord[0]+"px";
+	
+	this.input.style.font="normal 22px Verdana";
+	
+	document.getElementById("the_div").appendChild(this.input);
 
+	this.setBackground=function(bgground){
+		this.input.style.background=bgground;
+		}
+	
+	this.refreshtext=function(mytext,nbrows){
+		this.input.value=mytext;
+		this.input.rows=nbrows;
+		}
+	
+	this.movetextbox=function(x,y){
+		this.input.style.left=x;
+		this.input.style.top=y;
+		}
+	} 
 var Ball=function(x,y){
 	
 	this.canvas= document.createElement("canvas");
