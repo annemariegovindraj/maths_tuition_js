@@ -1,0 +1,337 @@
+ <!DOCTYPE HTML>
+<html lang="en">
+<head> 
+<meta charset="UTF-8"/>
+<meta name="description" content=" subtraction with borrowing, exercise corrected step by step "/>
+<meta name="author" content="annemarie.govindraj">
+<meta name="keywords" content="maths, subtraction with borrowing, interactive learning ">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<!--link rel="stylesheet" href="base.css" type="text/css"/-->
+</head>
+<body  bgcolor="orange">
+	<div id='the_div' bgcolor="orange">
+	<canvas id='digitboard' ></canvas><!--width='450' height='120' onclick='DigitBoard.resolve'-->
+
+	</div>
+	<script src='utilities.js'></script>
+	<script>
+	/*
+ This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details. at 
+	https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+you may contact me at annemarie.govindraj@gmail.com
+*/
+
+
+window.timer=null;
+comment=null;
+bgcolor="rgb(255,233,120)";
+commentcolor="rgb(255,196,64)";
+flickeron=false;
+flickernb=0;
+flickers=[[50,10],[12,10],[50,85],[12,85]];
+var keyb=null;
+var xo=20,yo=20;
+var qnb=0;
+
+
+var DigitBoard= function(canvasname, coord){
+
+		this.board = document.getElementById(canvasname);
+		this.board.width=coord[2];///40*Math.floor(window.innerWidth/80)+8;
+		this.board.height=coord[3];//16*Math.floor(window.innerHeight/64)+2;/// max 1/3 (here 1/4) of windowheight and divisible by 8*2
+			
+		this.board.style.position='absolute';
+		this.board.style.top=coord[1]+"px";
+		this.board.style.left=coord[0]+"px";
+		this.bctx = this.board.getContext && this.board.getContext('2d');
+		///cols about 60-80 by 70, drawn with rounded corners: arc at xscale, yscale from edge=1/8 of button
+		this.xscale=Math.floor(this.board.width/60);//5 col each 8*xscale+2,  for 1.2*colwidth=1+xscale for enter  backspace, 2 px between cols
+		this.yscale=Math.floor(this.board.height/18); //2 rows  
+		//this.board.addEventListener('touchstart', keyb.resolveDigit,false);
+		
+		
+	this.board.ontouchstart= function(event){//console.log("clicked"); 
+		keyb.resolveDigit(event);}
+		//this.touch=event.touches[0];
+		//var nx=event.touches[0].clientX;
+		//var ny=event.touches[0].clientY;
+			//}
+			
+	
+	this.draw=function(){
+		this.bctx.fillStyle="rgb(255,196,136)"; 
+		this.bctx.fillRect(0,0,this.board.width,this.board.height);///5 buttons with 8*xscale wide rounded buttons+"enter
+		this.bctx.font="normal 24px Verdana";
+					
+		for(var i=0; i<=9; i++){
+				var column=(i%5)*(8*this.xscale+2);
+				var row=(Math.floor(i/5))*(8*this.yscale+2);
+				this.drawButton(column,row,8,""+(i+1)%10);
+				}
+		this.bctx.font="normal 16px Verdana";
+		this.drawButton(5*(8*this.xscale+2),0,10,"BACK");
+		this.drawButton(5*(8*this.xscale+2),(8*this.yscale+2),10,"ENTER");
+	}		
+	this.drawButton=function(column,row,ext,name){
+		this.bctx.fillStyle="rgb(239,228,176)";
+		this.bctx.beginPath();
+		this.bctx.moveTo(column,row+this.yscale);
+		this.bctx.quadraticCurveTo(column,row,column+this.xscale,row);
+		this.bctx.lineTo(column+(ext-1)*this.xscale,row);
+		this.bctx.quadraticCurveTo(column+ext*this.xscale,row,column+ext*this.xscale,row+this.yscale);
+		this.bctx.lineTo(column+ext*this.xscale,row+7*this.yscale);
+		this.bctx.quadraticCurveTo(column+ext*this.xscale,row+8*this.yscale,column+(ext-1)*this.xscale,row+8*this.yscale);
+		this.bctx.lineTo(column+this.xscale,row+8*this.yscale);
+		this.bctx.quadraticCurveTo(column,row+8*this.yscale,column,row+7*this.yscale);
+		this.bctx.lineTo(column,row+this.yscale);
+		this.bctx.fill();
+		this.bctx.fillStyle="black";
+			var digitw=this.bctx.measureText(name).width;
+		//var digith=this.bctx.measureText(""+(i+1)%10).height;
+		this.bctx.fillText(name, (column+(ext*this.xscale-digitw)/2),row+(6*this.yscale));
+		}
+				
+		
+		
+	this.resolveDigit=function(event){
+		//this.select=false;
+		//this.touch=event.touches[0];
+		var nx=event.touches[0].clientX-coord[0];
+		var ny=event.touches[0].clientY-coord[1];
+		//var nx=event.pageX-coord[0];
+		//var ny=event.pageY-coord[1];
+		//alert("touch"+nx+" , "+ny);
+		var digitrow=Math.floor((ny+2)/(this.yscale*8+2));
+		var digitcol=Math.floor((nx+2)/(8*this.xscale+2));
+		var term="";
+		if (nx>((8*this.xscale+2)*5)){
+			if(digitrow==0) {term= "Backspace";}
+			if(digitrow==1) {term= "Enter";}
+			}
+		else {var digit=(digitrow*5+digitcol+1)%10;
+			term=""+digit;
+		console.log("digittouched"+digit);
+		}
+		
+		BorrowingEx.keyTyped(term);
+		}
+	}
+		
+
+var BorrowingEx= new function(){
+		comment=new Comment("",[Math.floor(2*window.innerWidth/3),50],25);
+		comment.setBackground(commentcolor);
+		this.showanswer=false;	
+		this.counter=0;	
+		keyb = new DigitBoard("digitboard",[10,3*window.innerHeight/4, Math.floor(window.innerWidth/2),Math.floor(window.innerHeight/4)]);
+		keyb.draw();
+		this.toRemove=Array();
+		
+this.nextExercise=function(){
+		//console.log(document.getElementById("the_div").childNodes);
+		if(window.innerWidth<window.innerHeight){alert("Please turn your device to landscape mode");}
+		qnb++;
+		this.canvas = document.createElement('canvas');
+		this.canvas.width=Math.max(Math.floor(window.innerWidth/12),80);
+		this.canvas.height=120;
+		this.canvas.id="q"+qnb;
+		if(qnb>1){xo=xo+1.2*(this.canvas.width);}
+		if(xo>(Math.floor(2*window.innerWidth/3)-80)){
+				xo=20; yo=yo+1.2*this.canvas.height;
+				if(yo>(Math.floor(5*window.innerHeight/8)-144)){
+						qnb=0; xo=20; yo=20;   
+						for (var i=0;i<BorrowingEx.toRemove.length;i++){
+							document.getElementById("the_div").removeChild(BorrowingEx.toRemove[i]);
+							}
+						BorrowingEx.toRemove.splice(0,BorrowingEx.toRemove.length)	
+						BorrowingEx.nextExercise();
+						}
+				}
+		this.canvas.style.background=commentcolor;//bgcolor;
+			this.canvas.style.position='absolute';
+			this.canvas.style.left=xo+"px";
+		this.canvas.style.top=yo+"px";
+		this.canvas.style.zIndex="2";
+		this.ctx = this.canvas.getContext && this.canvas.getContext('2d');
+		BorrowingEx.ctx.fillStyle=commentcolor;//"rgb(135,220,245)";
+		BorrowingEx.ctx.fillRect(0,0,BorrowingEx.canvas.width, BorrowingEx.canvas.height);
+		BorrowingEx.ctx.strokeStyle="black";
+		BorrowingEx.ctx.fillStyle="black";
+		BorrowingEx.ctx.font="25px Arial"
+	document.getElementById("the_div").appendChild(this.canvas);
+	
+		this.overlay=document.createElement('canvas');
+		this.overlay.width=this.canvas.width;
+		this.overlay.height=this.canvas.height;
+		this.overlay.style.position='absolute';
+		this.overlay.style.left=xo+"px";
+		this.overlay.style.top=yo+"px";
+		this.overlay.style.zIndex="20";
+		//this.overlay.addEventListener('mousedown', this.checkTerm(event);
+		this.overl=this.overlay.getContext('2d');
+		this.overl.clearRect(0,0,this.width, this.height);
+		document.getElementById("the_div").appendChild(this.overlay);
+		this.toRemove.push(this.canvas);
+		this.toRemove.push(this.overlay);
+	
+		///random sums
+			do{ //showAnswerbutton.changeLabel("ShowAnswer");
+				var max=100;
+				var c=Math.floor(Math.random()*max);
+				BorrowingEx.b=Math.floor(Math.random()*max);
+				if(c>=BorrowingEx.b){BorrowingEx.a=c;}
+				else {BorrowingEx.a=BorrowingEx.b; BorrowingEx.b=c;}
+				} while((BorrowingEx.b%10)<=BorrowingEx.a%10);
+			//console.log(BorrowingEx.a,BorrowingEx.b);		
+				
+			BorrowingEx.atens=Math.floor(BorrowingEx.a/10);
+			BorrowingEx.aunits=BorrowingEx.a%10;
+			BorrowingEx.btens=Math.floor(BorrowingEx.b/10);
+			BorrowingEx.bunits=BorrowingEx.b%10;
+			BorrowingEx.ctx.fillText(""+BorrowingEx.atens,20,50);this.ctx.fillText(""+BorrowingEx.aunits,55,50);
+		BorrowingEx.ctx.fillText("-",5,75);this.ctx.fillText(""+BorrowingEx.btens,20,75);this.ctx.fillText(""+BorrowingEx.bunits,55,75);
+		
+		BorrowingEx.ctx.beginPath();
+		BorrowingEx.ctx.moveTo(15,80);
+		BorrowingEx.ctx.lineTo(75,80);
+		BorrowingEx.ctx.stroke();
+		flickernb=0;
+		window.timer=setInterval(BorrowingEx.setflicker,400); 
+		BorrowingEx.guess="";
+			//BorrowingEx.
+		
+			}
+this.setflicker=function(){flickeron=!flickeron; 
+			BorrowingEx.draw();
+		}			
+			
+this.checkTerm=function(event){		
+		var nx=event.pageX-coord[0];
+		var ny=event.pageY-coord[1];
+		}
+this.draw=function(){
+		BorrowingEx.ctx.fillStyle=commentcolor;//"rgb(135,220,245)";
+		BorrowingEx.ctx.fillRect(0,0,BorrowingEx.canvas.width, BorrowingEx.canvas.height);
+		BorrowingEx.ctx.strokeStyle="black";
+		BorrowingEx.ctx.fillStyle="black";
+		BorrowingEx.ctx.font="25px Arial"
+		
+		BorrowingEx.ctx.fillText(""+BorrowingEx.atens,20,50);this.ctx.fillText(""+BorrowingEx.aunits,55,50);
+		BorrowingEx.ctx.fillText("-",5,75);this.ctx.fillText(""+BorrowingEx.btens,20,75);this.ctx.fillText(""+BorrowingEx.bunits,55,75);
+		
+		BorrowingEx.ctx.beginPath();
+		BorrowingEx.ctx.moveTo(15,80);
+		BorrowingEx.ctx.lineTo(75,80);
+		BorrowingEx.ctx.stroke();
+		
+		///cut line
+		BorrowingEx.ctx.strokeStyle='red';
+		BorrowingEx.ctx.beginPath();
+		BorrowingEx.ctx.moveTo(15,50);
+		BorrowingEx.ctx.lineTo(35,30);
+		BorrowingEx.ctx.moveTo(50,50);
+		BorrowingEx.ctx.lineTo(70,30);
+		
+		BorrowingEx.ctx.stroke();
+	//console.log(flickeron);OK
+		
+		if (flickeron===true){
+			BorrowingEx.ctx.fillStyle=bgcolor;
+			var xx=flickers[flickernb][0];
+			var yy=flickers[flickernb][1];
+		
+			BorrowingEx.ctx.fillRect(xx,yy,28,20);	
+			}
+		}	
+/*
+this.mouseclicked=function(event){
+	if((event.clientY>3*window.innerHeight/4)&&(event.clientX<window.innerwidth/2)){ 
+		keyb.resolveDigit(event);}}
+*/		
+this.keyTyped=function(term){
+	if(term=="Backspace"){console.log(" pressed backspace");
+		BorrowingEx.overl.clearRect(flickers[flickernb][0],flickers[flickernb][1],25,20);
+		}
+
+	else if(!isNaN(term)){
+			clearInterval(window.timer); flicker=true;
+			BorrowingEx.evaluated=false;
+			BorrowingEx.guess=BorrowingEx.guess+term;
+			var correctanswer=false;
+			var comment1="";
+			
+			BorrowingEx.overl.font="25px Arial"
+	
+			console.log("flnb"+flickernb+" guess "+BorrowingEx.guess);
+			if((flickernb==0)&&(BorrowingEx.guess<10)){
+				BorrowingEx.overl.fillStyle="blue";
+				BorrowingEx.overl.fillText(BorrowingEx.guess,50,30);
+				if(BorrowingEx.guess!=1){comment1="You should add 10 to "+BorrowingEx.aunits+", correct answer is "+ (10+BorrowingEx.aunits);
+					comment.refreshtext("No, "+comment1+". Use backspace to erase", 3);
+					BorrowingEx.guess="";
+					}
+					
+			}
+			else {BorrowingEx.answer=Number(BorrowingEx.guess);
+			switch(flickernb){
+				case 0: 
+					xx=50; yy=30;
+					if(BorrowingEx.answer==(10+BorrowingEx.aunits)){correctanswer=true; BorrowingEx.overl.clearRect(45,10,30,20);}
+					comment1="You should add 10 to "+BorrowingEx.aunits+", correct answer is "+ (10+BorrowingEx.aunits);
+					break;
+				case 1: xx=15; yy=30;
+					if(BorrowingEx.answer==BorrowingEx.atens-1){correctanswer=true;}
+					comment1="You should subtract 1 from "+BorrowingEx.atens+", correct answer is "+(BorrowingEx.atens-1);
+				break;
+				case 2: xx=55; yy=105;
+					if(BorrowingEx.answer==10+BorrowingEx.aunits-BorrowingEx.bunits){correctanswer=true;}
+					comment1=""+(10+BorrowingEx.aunits)+"-"+BorrowingEx.bunits+" = "+ (10+BorrowingEx.aunits-BorrowingEx.bunits);
+				break;
+				case 3 : xx=20; yy=105;
+					if(BorrowingEx.answer==BorrowingEx.atens-BorrowingEx.btens-1){correctanswer=true;}
+					comment1=""+(BorrowingEx.atens-1)+"-"+BorrowingEx.btens+" = "+(BorrowingEx.atens-1-BorrowingEx.btens);
+				break;
+					
+				default:  xx=55; yy=10;	
+				}
+			if (correctanswer==true){BorrowingEx.overl.fillStyle="black";
+				BorrowingEx.overl.fillText(BorrowingEx.answer,xx,yy);
+				flickernb++;
+				window.timer=setInterval(BorrowingEx.setflicker,200); 
+			
+				BorrowingEx.guess="";
+				if (flickernb>3){comment.refreshtext("Very good, next exercise",1);
+								BorrowingEx.nextExercise();
+							}
+				}
+			else { BorrowingEx.overl.fillStyle="blue";
+				BorrowingEx.overl.fillText(BorrowingEx.guess,xx,yy);
+				comment.refreshtext("No, "+comment1+". Use backspace to erase", 3);
+				BorrowingEx.answer=null; BorrowingEx.guess="";
+				}
+			}//end of else
+		}
+	} //end of keyTyped	
+}
+		
+//window.addEventListener('touchstart', function (event){if((event.touches[0].clientY>3*window.innerHeight/4)&&(event.touches[0].clientX<Window.innerWidth/2)){keyb.resolveDigit(event);}},false);
+//window.addEventListener('touchmove', function(){preventDefault();},false);
+window.addEventListener('touchcancel', this.cancelalltouches,false);///for if finger moves into browser UI		
+ window.addEventListener("load", function(){BorrowingEx.nextExercise()}); 			
+	</script> 
+	</body>
+</html>
