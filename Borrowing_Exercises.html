@@ -1,0 +1,248 @@
+ <!DOCTYPE HTML>
+<html lang="en">
+<head> 
+<meta charset="UTF-8"/>
+<!--link rel="stylesheet" href="base.css" type="text/css"/-->
+</head>
+<body  bgcolor="orange">
+	<div id='the_div' bgcolor="orange">
+	</div>
+	<script src='utilities.js'></script>
+	<script>
+	/*
+ This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details. at 
+	https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+you may contact me at annemarie.govindraj@gmail.com
+*/
+
+
+window.timer=null;
+comment=null;
+bgcolor="rgb(255,233,120)";
+commentcolor="rgb(255,196,64)";
+flickeron=false;
+flickernb=0;
+qnb=0;
+flickers=[[50,10],[12,10],[50,85],[12,85]];
+
+var BorrowingEx= new function(){
+		comment=new Comment("",[Math.floor(2*window.innerWidth/3),50],25);
+		comment.setBackground(commentcolor);
+		//this.demoExerc=[[23,7],[23,14],[20,16]];
+		this.showanswer=false;	
+		this.counter=0;	
+	
+this.nextExercise=function(){
+		console.log("qnb : "+qnb);
+		this.canvas = document.createElement('canvas');
+		this.canvas.width=Math.max(Math.floor(window.innerWidth/12),80);
+		this.canvas.height=120;
+		this.canvas.style.background=commentcolor;//bgcolor;
+		console.log("w, h  "+this.canvas.width+", "+this.canvas.height);
+		this.canvas.style.position='absolute';
+		var xo=50+(qnb%5)*(this.canvas.width+50);
+		var yo=50+Math.floor(qnb/5)*this.canvas.height;
+		this.canvas.style.left=xo+"px";
+		this.canvas.style.top=yo+"px";
+		this.canvas.style.zIndex="2";
+		this.ctx = this.canvas.getContext && this.canvas.getContext('2d');
+		BorrowingEx.ctx.fillStyle=commentcolor;//"rgb(135,220,245)";
+		BorrowingEx.ctx.fillRect(0,0,BorrowingEx.canvas.width, BorrowingEx.canvas.height);
+		BorrowingEx.ctx.strokeStyle="black";
+		BorrowingEx.ctx.fillStyle="black";
+		BorrowingEx.ctx.font="25px Arial"
+	document.getElementById("the_div").appendChild(this.canvas);
+	
+		this.overlay=document.createElement('canvas');
+		this.overlay.width=this.canvas.width;
+		this.overlay.height=this.canvas.height;
+		this.overlay.style.position='absolute';
+		this.overlay.style.left=xo+"px";
+		this.overlay.style.top=yo+"px";
+		this.overlay.style.zIndex="20";
+		//this.overlay.addEventListener('mousedown', this.checkTerm(event);
+		this.overl=this.overlay.getContext('2d');
+		this.overl.clearRect(0,0,this.width, this.height);
+		document.getElementById("the_div").appendChild(this.overlay);
+	
+		//nextbutton=new KButton("button1","NEXT", [Math.floor(window.innerWidth/5),Math.floor(window.innerHeight-60),100,40]);
+		//nextbutton.drawButton();
+		//showAnswerbutton=new KButton("button2","ShowAnswer", [Math.floor(2*window.innerWidth/5),Math.floor(window.innerHeight-60),200,40]);
+		//showAnswerbutton.drawButton();
+		//this.message=new Comment("",[x1+6, yo+12*w],0);//console.log("x1 "+x1);
+		//this.canvas.style.top=yo-"10px";
+		
+
+		///random sums
+			do{ //showAnswerbutton.changeLabel("ShowAnswer");
+				var max=100;
+				var c=Math.floor(Math.random()*max);
+				BorrowingEx.b=Math.floor(Math.random()*max);
+				if(c>=BorrowingEx.b){BorrowingEx.a=c;}
+				else {BorrowingEx.a=BorrowingEx.b; BorrowingEx.b=c;}
+				} while((BorrowingEx.b%10)<=BorrowingEx.a%10);
+			console.log(BorrowingEx.a,BorrowingEx.b);
+				
+				
+				
+			BorrowingEx.atens=Math.floor(BorrowingEx.a/10);
+			BorrowingEx.aunits=BorrowingEx.a%10;
+			BorrowingEx.btens=Math.floor(BorrowingEx.b/10);
+			BorrowingEx.bunits=BorrowingEx.b%10;
+			BorrowingEx.ctx.fillText(""+BorrowingEx.atens,20,50);this.ctx.fillText(""+BorrowingEx.aunits,55,50);
+		BorrowingEx.ctx.fillText("-",5,75);this.ctx.fillText(""+BorrowingEx.btens,20,75);this.ctx.fillText(""+BorrowingEx.bunits,55,75);
+		
+		BorrowingEx.ctx.beginPath();
+		BorrowingEx.ctx.moveTo(15,80);
+		BorrowingEx.ctx.lineTo(75,80);
+		BorrowingEx.ctx.stroke();
+		flickernb=0;
+		window.timer=setInterval(BorrowingEx.setflicker,400); 
+		BorrowingEx.guess="";
+			//BorrowingEx.
+		
+			}
+this.setflicker=function(){flickeron=!flickeron; 
+			BorrowingEx.draw();
+		}			
+			
+this.checkTerm=function(event){		
+		var nx=event.pageX-coord[0];
+		var ny=event.pageY-coord[1];
+		}
+this.draw=function(){
+		BorrowingEx.ctx.fillStyle=commentcolor;//"rgb(135,220,245)";
+		BorrowingEx.ctx.fillRect(0,0,BorrowingEx.canvas.width, BorrowingEx.canvas.height);
+		BorrowingEx.ctx.strokeStyle="black";
+		BorrowingEx.ctx.fillStyle="black";
+		BorrowingEx.ctx.font="25px Arial"
+		
+		BorrowingEx.ctx.fillText(""+BorrowingEx.atens,20,50);this.ctx.fillText(""+BorrowingEx.aunits,55,50);
+		BorrowingEx.ctx.fillText("-",5,75);this.ctx.fillText(""+BorrowingEx.btens,20,75);this.ctx.fillText(""+BorrowingEx.bunits,55,75);
+		
+		BorrowingEx.ctx.beginPath();
+		BorrowingEx.ctx.moveTo(15,80);
+		BorrowingEx.ctx.lineTo(75,80);
+		BorrowingEx.ctx.stroke();
+		
+		///cut line
+		BorrowingEx.ctx.strokeStyle='red';
+		BorrowingEx.ctx.beginPath();
+		BorrowingEx.ctx.moveTo(15,50);
+		BorrowingEx.ctx.lineTo(35,30);
+		BorrowingEx.ctx.moveTo(50,50);
+		BorrowingEx.ctx.lineTo(70,30);
+		
+		BorrowingEx.ctx.stroke();
+	//console.log(flickeron);OK
+		
+		if (flickeron===true){
+			BorrowingEx.ctx.fillStyle=bgcolor;
+			var xx=flickers[flickernb][0];
+			var yy=flickers[flickernb][1];
+		
+			BorrowingEx.ctx.fillRect(xx,yy,28,20);	
+			}
+		}
+
+		/*if(Borrowing.nbjarsborrowed==1){
+			this.ctx.font="20px Arial"
+			this.ctx.fillText(""+Borrowing.atens-1,10,y1-25);this.ctx.fillText(""+(Borrowing.aunits+10),45,y1-25);
+			}
+		if(Borrowing.showAnswer==true){
+			this.ctx.fillText(""+Math.floor((Borrowing.a-Borrowing.b)/10),20,y1+9*w);
+			this.ctx.fillText(""+(Borrowing.a-Borrowing.b)%10,55,y1+9*w);
+			}
+	*/
+this.keyDowned=function(event){
+	if(event.code=="Backspace"){console.log(" pressed backspace");
+		BorrowingEx.overl.clearRect(flickers[flickernb][0],flickers[flickernb][1],25,20);
+		}
+}	
+this.keyTyped=function(event){
+
+ if(!isNaN(event.key)){
+			clearInterval(window.timer); flicker=true;
+			BorrowingEx.evaluated=false;
+			BorrowingEx.guess=BorrowingEx.guess+event.key;
+			var correctanswer=false;
+			var comment1="";
+			
+			BorrowingEx.overl.font="25px Arial"
+	
+			console.log("flnb"+flickernb+" guess "+BorrowingEx.guess);
+			if((flickernb==0)&&(BorrowingEx.guess<10)){
+				BorrowingEx.overl.fillStyle="blue";
+				xx=50; 	yy=30;//
+				BorrowingEx.overl.fillText(BorrowingEx.guess,50,30);
+				if(BorrowingEx.guess!=1){comment1="You should add 10 to "+BorrowingEx.aunits+", correct answer is "+ (10+BorrowingEx.aunits);
+					comment.refreshtext("No, "+comment1+". Use backspace to erase", 3);
+					BorrowingEx.guess="";
+					}
+			}
+			else {BorrowingEx.answer=Number(BorrowingEx.guess);
+			switch(flickernb){
+				case 0: 
+					xx=50; yy=30;
+					if(BorrowingEx.answer==(10+BorrowingEx.aunits)){correctanswer=true; BorrowingEx.overl.clearRect(45,10,30,20);}
+					comment1="You should add 10 to "+BorrowingEx.aunits+", correct answer is "+ (10+BorrowingEx.aunits);
+					break;
+				case 1: xx=15; yy=30;
+					if(BorrowingEx.answer==BorrowingEx.atens-1){correctanswer=true;}
+					comment1="You should subtract 1 from "+BorrowingEx.atens+", correct answer is "+(BorrowingEx.atens-1);
+				break;
+				case 2: xx=55; yy=105;
+					if(BorrowingEx.answer==10+BorrowingEx.aunits-BorrowingEx.bunits){correctanswer=true;}
+					comment1=""+(10+BorrowingEx.aunits)+"-"+BorrowingEx.bunits+" = "+ (10+BorrowingEx.aunits-BorrowingEx.bunits);
+				break;
+				case 3 : xx=20; yy=105;
+					if(BorrowingEx.answer==BorrowingEx.atens-BorrowingEx.btens-1){correctanswer=true;}
+					comment1=""+(BorrowingEx.atens-1)+"-"+BorrowingEx.btens+" = "+(BorrowingEx.atens-1-BorrowingEx.btens);
+				break;
+					
+				default:  xx=55; yy=10;	
+				}
+			if (correctanswer==true){BorrowingEx.overl.fillStyle="black";
+				BorrowingEx.overl.fillText(BorrowingEx.answer,xx,yy);
+				flickernb++;
+				window.timer=setInterval(BorrowingEx.setflicker,200); 
+			
+				BorrowingEx.guess="";
+				if (flickernb>3){comment.refreshtext("Very good, next exercise",1);
+							qnb++;
+							BorrowingEx.nextExercise();
+							}
+				}
+			else { BorrowingEx.overl.fillStyle="blue";
+				BorrowingEx.overl.fillText(BorrowingEx.guess,xx,yy);
+				comment.refreshtext("No, "+comment1+". Use backspace to erase", 3);
+				BorrowingEx.answer=null; BorrowingEx.guess="";
+				}
+			}//end of else
+		}
+	} //end of keyTyped	
+}		
+//window.addEventListener("mousedown",function(event){BorrowingEx.showExAnswer(event.clientX, event.clientY); })
+window.addEventListener('keydown', BorrowingEx.keyDowned);
+window.addEventListener('keypress', BorrowingEx.keyTyped);
+			
+ window.addEventListener("load", function(){BorrowingEx.nextExercise()}); 			
+			
+	</script>
+	
+	
+	</body>
+</html>
