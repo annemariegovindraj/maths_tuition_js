@@ -1,0 +1,463 @@
+ <!DOCTYPE HTML>
+<html lang="en">
+<head> 
+
+<meta charset="UTF-8"/>
+<meta name="description" content="exercises : simplifying terms of a fraction, step by step correction"/>
+<meta name="author" content="annemarie.govindraj">
+<meta name="keywords" content="interactive learning, fractions simplification, school, maths ">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<!--link rel="stylesheet" href="base.css" type="text/css"/-->
+</head>
+<body  bgcolor="orange">
+	<div id='the_div' bgcolor="orange">
+	<canvas id='workarea'></canvas>
+	
+</div>
+	<script >
+	/*
+ This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details. at 
+	https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+you may contact me at annemarie.govindraj@gmail.com
+*/
+/* 3 canvasses : 1 for definite answer, one for unconfirmed cut + 1 textarea for comments
+N[i][j], D[i][j] array of objects of Number class, i horizontal location of term, j vertical, depending on nb of cuts (j=1 if cut once, at start j=0)
+ncut dcut global in fraction, iscut for each Number in N[][] or D[][]
+nanswer int of nguess global in Fraction_simplif
+*/
+
+var xo=100; var yo=250;
+var space=50;
+var comments=null;
+
+var NNumber=function(n){
+	this.iscut=false;
+	this.Factors=[];
+	nboffactors=0;
+	this.n=n;
+	this.getFactors=function(){
+		for(var i=1;i<(1+Math.sqrt(this.n));i++)
+			{if((this.n)%i===0){this.Factors.append(i); this.Factors.append(this.n/i);}}
+		this.nboffactors=this.factors.length;
+		return this.Factors;
+		}
+	this.getNb=function(){
+		return this.n;}
+	this.getcut=function(N){
+		return this.iscut;}
+	this.isafactor=function(xx){
+		for (var j=0; j<this.nboffactors;j++){
+			if(xx==this.Factors[j]){return true;}}
+		return false;	
+		}
+	}
+ var LongText=function(){
+	this.c= document.createElement("canvas");
+	this.c.width=window.innerWidth/2;
+	this.c.height=Math.min(450,window.innerWidth*3/4);
+	this.c.style="position:absolute";
+	this.c.style.left=window.innerWidth/2+"px";
+	this.c.style.top="0px";
+	this.ctx=this.c.getContext('2d');
+		
+	this.ctx.fillStyle="rgb(255,196,136)"; 
+	this.ctx.fillRect(0,0,this.c.width, this.c.height);
+	document.getElementById("the_div").appendChild(this.c);
+	this.y=30;
+	
+	this.addLine=function(mytext){
+		this.ctx.fillStyle="black";
+		this.ctx.font="normal 22px Verdana";
+		this.ctx.fillText(mytext,50,this.y);
+		this.y+=30;
+		if(this.y===this.c.height){
+			this.y=30;
+			this.ctx.fillStyle="rgb(255,196,136)"; 
+			this.ctx.fillRect(0,0,this.c.width, this.c.height);
+			}
+		}
+	}
+	
+
+var Fraction_simplif=new function(){
+		this.ncut=0; this.dcut=0; //double use with lastclickup?
+		this.evaluated=false;
+	//this.initialize = function()	{
+		this.canvas = document.getElementById('workarea');
+		this.canvas.width=Math.floor(window.innerWidth/2);
+		this.canvas.height=Math.min(450,window.innerWidth*3/4);
+		this.canvas.style.position='absolute';
+		this.canvas.style.top="0px";
+		this.canvas.style.left="0px";
+		
+		this.overlay=document.createElement('canvas');
+		this.overlay.width=this.canvas.width;
+		this.overlay.height=this.canvas.height;
+		this.overlay.style.position='absolute';
+		this.overlay.style.top="0px";
+		this.overlay.style.left="0px";
+		this.overlay.style.zIndex="20";
+		//this.overlay.addEventListener('mousedown', this.resolveTerm);
+		this.overl=null;
+		document.getElementById("the_div").appendChild(this.overlay);
+	 
+		comments = new LongText();
+			
+		this.W=3; this.max=10;
+		this.ctx = this.canvas.getContext && this.canvas.getContext('2d');
+		if(!this.ctx) { return alert("Upgrade your browser to see this app"); }
+		else{
+			this.overl=this.overlay.getContext('2d');
+			this.ctx.font="normal 22px Verdana";
+			this.ctx.fillStyle="black";
+			this.overl.font="normal 22px Verdana";
+			this.overl.fillStyle="blue";
+					
+			//this.nextquestion();
+			}
+	//}
+
+	this.nextquestion=function(){
+		console.log("this"+this);//document.getElementById("the_div").childNodes);	
+		this.N=new Array(this.W);
+		this.D=new Array(this.W);
+		this.nflicker=0; this.dflicker=0;
+		this.nguess=""; this.dguess="";
+		this.nanswer=-1;
+		this.danswer=-1;
+		this.lastflickerup=0;
+		this.evaluated=true;
+		this.ctx.fillStyle="orange";
+		this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
+		var nresult=1; var dresult=1; 
+		this.nguess=""; this.dguess="";
+		for(i=0;i<this.W;i++){
+			do{cf=Math.floor(Math.random()*this.max);}while(cf<=1)
+			do{a=Math.round(Math.random()*this.max);}while(a<=0)
+			do{ b=Math.round(Math.random()*this.max);}while((b<=0)||(b==a))
+			 this.N[i]=new Array();
+			 this.N[i][0]=new NNumber(a*cf);
+			 this.D[i]=new Array();
+			 this.D[i][0]=new NNumber(b*cf);
+			 nresult*=a;
+			 dresult*=b;
+			 }
+		////smallest term = endresult
+		var div=this.HCF(nresult,dresult);
+		this.endnres=nresult/div;
+		this.enddres=dresult/div;
+		//console.log(nresult,dresult,div,this.endnres,this.enddres);
+		this.render();
+		this.ctx.fillStyle="black";
+		this.ctx.fillText("click on number to simplify",20,50);
+		this.ctx.fillText("then type new simplified number",20,80);
+		this.ctx.fillText("and push Enter",20,110);
+ 
+		}
+		
+		this.HCF= function(firstnb,secondnb){
+			var hh=1;
+			var aa=firstnb;
+			var bb=secondnb;
+			if(aa<bb){hh=aa;}
+			else{hh=bb;}
+			for (var i=hh;i>1;i--){
+				if(((aa%i)===0)&&((bb%i)===0)){return i;}
+				}
+			return 1;
+			}
+		this.render=function(){
+			//var space=60; xo yo
+				this.ctx.fillStyle="black";
+				this.ctx.font="normal 22px Verdana";
+			for ( var i=0;i<(this.W-1);i++){
+				this.ctx.fillText(""+this.N[i][0].n+" x",xo+i*space, yo-10);
+				this.ctx.fillText(""+this.D[i][0].n+" x",xo+i*space, yo+25);
+				}
+			this.ctx.fillText(""+this.N[this.W-1][0].n,xo+i*space, yo-10);
+			this.ctx.fillText(""+this.D[this.W-1][0].n,xo+i*space, yo+25);
+			this.ctx.fillText("=",xo+this.W*space+space/2, yo+2);
+			this.ctx.strokeStyle="black";
+			this.ctx.beginPath();
+			this.ctx.moveTo(xo,yo);
+			this.ctx.lineTo(xo+space*this.W,yo);
+			this.ctx.stroke();
+			}
+		this.checkForFullSimplified=function(){
+			var numerator=1;
+			var denominator=1;
+			
+			for(var i=0;i<(this.W);i++){
+				var j=0;
+				while(j<5){
+						if((Fraction_simplif.N[i][j])&&(Fraction_simplif.N[i][j].getcut()==true)){j++;}
+						else{numerator*=Fraction_simplif.N[i][j].getNb(); break;}///todo if while j<5 needs break;
+						
+				//console.log("N "+Fraction_simplif.N[i][j].getNb()+"at  "+i+","+j);
+						}}
+			for(var i=0;i<(this.W);i++){
+				var j=0;
+				while(j<5){
+						if((Fraction_simplif.D[i][j])&&(Fraction_simplif.D[i][j].getcut()==true)){j++;}
+						else{denominator*=Fraction_simplif.D[i][j].getNb(); break;}
+						
+				//console.log("at  "+i+","+j+"; D "+(Fraction_simplif.D[i][j].getNb()));
+				}}
+				console.log("PN "+numerator+"="+this.endnres+";  PD "+denominator+" ="+this.enddres);
+			if((numerator==this.endnres)&&(denominator==this.enddres)){
+				comments.addLine("You have reached simplest terms");
+				comments.addLine("Type in Numerator and press Enter");
+				Fraction_simplif.nflicker=(this.W+1); Fraction_simplif.dflicker=(this.W+1);
+				Fraction_simplif.lastclickup=1;
+				Fraction_simplif.ncut=1; Fraction_simplif.dcut=-1;
+				Fraction_simplif.ctx.strokeStyle="black";
+				Fraction_simplif.ctx.beginPath();
+				Fraction_simplif.ctx.moveTo(xo+this.nflicker*space,yo);
+				Fraction_simplif.ctx.lineTo(xo+space*(this.nflicker+1),yo);
+				Fraction_simplif.ctx.stroke();
+				}
+			else{
+					comments.addLine("Go on simplifying");}
+			
+			}
+			
+		this.resolveTerm=function(event){
+			//if((this.ncut>0)||(this.dcut<0)){
+				if(Fraction_simplif.evaluated==false){
+						Fraction_simplif.evaluate();
+						//setTimeout(function(){Fraction_simplif.resolveTerm(event);},10);
+						}//}
+				if(Fraction_simplif.evaluated==true){
+				var nx=event.clientX;
+				var ny=event.clientY;
+				var charwidth=Math.round(Fraction_simplif.ctx.measureText("_x").width/2);//console.log(nx,ny,space,Fraction_simplif.W);
+				Fraction_simplif.overl.strokeStyle="red";
+				Fraction_simplif.overl.lineWidth=2;
+				if((nx>xo)&&(nx<xo+Fraction_simplif.W*space)){///find which term has been clicked for cutting
+					if ((ny<yo)&&(ny>yo-200)){///////////in numerator
+					//if((lastclickup===1)&&(nanswer!=-1)){ checkForCommonFactor(ndivider,this.D);}
+					//else{
+					Fraction_simplif.nflicker=Math.floor((nx+charwidth-xo)/space);
+					console.log("nflicker "+Fraction_simplif.nflicker);
+					var c=0; while(c<5){if(Fraction_simplif.N[Fraction_simplif.nflicker][c].getcut()==true){c++;} else {Fraction_simplif.ncut=c+1;break;}}
+					//console.log("ncut "+Fraction_simplif.ncut);
+					Fraction_simplif.lastclickup=1;
+					//Fraction_simplif.ncut=1;
+					Fraction_simplif.nselect=Fraction_simplif.N[Fraction_simplif.nflicker][c]; //ncut=1+(yo-ny)/30;
+					Fraction_simplif.overl.beginPath();
+					Fraction_simplif.overl.moveTo(xo+Fraction_simplif.nflicker*space-4,yo-30*(Fraction_simplif.ncut-1)-7);
+					Fraction_simplif.overl.lineTo(xo+Fraction_simplif.nflicker*space+30,yo-30*Fraction_simplif.ncut+2);
+					Fraction_simplif.overl.stroke();
+					}
+				else if((ny>yo)&&(ny<yo+150)){
+					//if((lastclickup===2)&&(danswer!=-1)){ checkForCommonFactor(ddivider,this.N);}
+					//else{
+					Fraction_simplif.dflicker=Math.floor((nx+charwidth-xo)/space);
+					console.log("dflicker "+Fraction_simplif.dflicker);
+					var c=0; while(c<5){if(Fraction_simplif.D[Fraction_simplif.dflicker][c].getcut()==true){c++;} else {Fraction_simplif.dcut=-c-1;break;}}////asking N[][].iscut returns not a function
+					//console.log("dcut"+Fraction_simplif.dcut);
+					Fraction_simplif.lastclickup=2;
+					Fraction_simplif.dselect=Fraction_simplif.D[Fraction_simplif.dflicker][c]; //iso c : [-Fraction_simplif.dcut-1]?dcut=-1+(yo-ny)/30;
+					Fraction_simplif.overl.beginPath();
+					Fraction_simplif.overl.moveTo(xo+Fraction_simplif.dflicker*space-4,yo-30*(Fraction_simplif.dcut)-2);
+					Fraction_simplif.overl.lineTo(xo+Fraction_simplif.dflicker*space+30,yo-30*(Fraction_simplif.dcut+1)+5);
+					Fraction_simplif.overl.stroke();
+				}
+		}}}
+	this.keyTyped=function(event){
+		console.log("keyevent "+event.key+"last"+Fraction_simplif.lastclickup);//event.keycode||event.charcode
+		
+		if(event.key=="Enter"){Fraction_simplif.evaluate();}
+		else if(Fraction_simplif.lastclickup==1){if(!isNaN(event.key)){
+						Fraction_simplif.evaluated=false;
+							Fraction_simplif.nguess=Fraction_simplif.nguess+event.key;
+							//console.log("nguess"+Fraction_simplif.nguess);
+							Fraction_simplif.overl.fillStyle="blue";
+							Fraction_simplif.overl.fillText(Fraction_simplif.nguess,xo+Fraction_simplif.nflicker*space, yo-10-30*Fraction_simplif.ncut);
+							}}
+		else if(Fraction_simplif.lastclickup==2){if(!isNaN(event.key)){		
+							Fraction_simplif.dguess=Fraction_simplif.dguess+event.key;
+							//console.log("dguess"+Fraction_simplif.dguess);
+							Fraction_simplif.overl.fillStyle="blue";
+							Fraction_simplif.overl.fillText(Fraction_simplif.dguess,xo+Fraction_simplif.dflicker*space, yo-5-30*(Fraction_simplif.dcut-1));
+							
+							Fraction_simplif.evaluated=false;
+							}}
+		}
+	
+		
+				
+	
+	this.keyDowned =function(event){
+			console.log("keydownevent "+event.key);//event.keycode||event.charcode
+		//if(event.key=="Enter"){	Fraction_simplif.evaluate();}
+		if(event.key=="Backspace"){
+				if (Fraction_simplif.lastclickup==1){
+							Fraction_simplif.nguess="";console.log("ncut"+Fraction_simplif.ncut);
+							Fraction_simplif.overl.clearRect(xo+Fraction_simplif.nflicker*space, yo-30*(Fraction_simplif.ncut+1),space,30);
+							}
+				else if(Fraction_simplif.lastclickup==2){
+							Fraction_simplif.dguess="";
+							//Fraction_simplif.overl.fillStyle="blue";
+							Fraction_simplif.overl.clearRect(xo+Fraction_simplif.dflicker*space, yo-3-30*Fraction_simplif.dcut,space,30);
+							}	
+							
+		 return ;
+			}
+		}
+		
+	this.evaluate=function(){
+		if((this.evaluated==false)&&(this.nflicker<Fraction_simplif.W)){
+			if((Fraction_simplif.lastclickup===1)&&(Fraction_simplif.nanswer==-1)){
+				
+				if(!isNaN(Fraction_simplif.nguess)){
+					Fraction_simplif.nanswer=parseInt(Fraction_simplif.nguess);
+					console.log("nanswer "+Fraction_simplif.nanswer+",nselect "+Fraction_simplif.nselect.getNb());
+					//if(Fraction_simplif.nselect.isafactor(this.nanswer)==true){this.ndivider=this.nselect.getNb()/this.nanswer;
+					if((this.nselect.getNb()%this.nanswer)==0){
+						this.ndivider=this.nselect.getNb()/this.nanswer;
+						comments.addLine("OK, "+Fraction_simplif.nselect.getNb()+" / "+Fraction_simplif.ndivider+"="+Fraction_simplif.nanswer);
+						}
+					else{
+						comments.addLine("No, "+Fraction_simplif.nanswer+" is not a factor of "+Fraction_simplif.nselect.getNb());
+						comments.addLine("click again on the number to simplify");
+						comments.addLine("then push backspace and try again");
+						//this.nguess="";//Fraction_simplif.nguess="";
+						this.nanswer=-1;
+						}
+					}
+				
+			}
+			if((Fraction_simplif.lastclickup===2)&&(Fraction_simplif.danswer==-1)){
+				if(!isNaN(Fraction_simplif.dguess)){
+					Fraction_simplif.danswer=parseInt(Fraction_simplif.dguess);
+					//	console.log("after parse"+Fraction_simplif.danswer);
+					//if(Fraction_simplif.nselect.isafactor(this.nanswer)==true){this.ndivider=this.nselect.getNb()/this.nanswer;
+					if((this.dselect.getNb()%this.danswer)==0){
+						this.ddivider=this.dselect.getNb()/this.danswer;
+						comments.addLine("OK, "+Fraction_simplif.dselect.getNb()+" / "+Fraction_simplif.ddivider+"="+Fraction_simplif.danswer);
+						}
+					else{
+						comments.addLine("No, "+Fraction_simplif.danswer+" is not a factor of "+Fraction_simplif.dselect.getNb());
+						comments.addLine("click again on the number to simplify");
+						comments.addLine("then Push backspace and try again");
+				//Fraction_simplif.lastclickup=0; 
+				Fraction_simplif.danswer=-1;
+						}
+				}
+			}
+		if((Fraction_simplif.danswer!=-1)&&(Fraction_simplif.nanswer!=-1))	{
+			if(Fraction_simplif.ndivider==Fraction_simplif.ddivider){
+				Fraction_simplif.N[Fraction_simplif.nflicker][Fraction_simplif.ncut]=new NNumber(Fraction_simplif.nanswer);
+				Fraction_simplif.D[Fraction_simplif.dflicker][-Fraction_simplif.dcut]=new NNumber(Fraction_simplif.danswer);
+				Fraction_simplif.N[Fraction_simplif.nflicker][Fraction_simplif.ncut-1].iscut=true;
+				Fraction_simplif.D[Fraction_simplif.dflicker][-Fraction_simplif.dcut-1].iscut=true;
+				Fraction_simplif.overl.clearRect(0,100,Fraction_simplif.overlay.width,300);
+				Fraction_simplif.ctx.fillStyle="black"; this.ctx.strokeStyle="red";
+				Fraction_simplif.ctx.fillText(""+Fraction_simplif.nanswer,xo+Fraction_simplif.nflicker*space, yo-10-30*(Fraction_simplif.ncut));
+					Fraction_simplif.ctx.beginPath();
+					Fraction_simplif.ctx.moveTo(xo+Fraction_simplif.nflicker*space-4,yo-30*(Fraction_simplif.ncut-1)-5);
+					Fraction_simplif.ctx.lineTo(xo+Fraction_simplif.nflicker*space+30,yo-30*Fraction_simplif.ncut+2);
+					Fraction_simplif.ctx.stroke();
+				Fraction_simplif.ctx.fillText(""+Fraction_simplif.danswer,xo+Fraction_simplif.dflicker*space, yo-5-30*(Fraction_simplif.dcut-1));
+					Fraction_simplif.ctx.beginPath();
+					Fraction_simplif.ctx.moveTo(xo+Fraction_simplif.dflicker*space-4,yo-30*(Fraction_simplif.dcut)-2);
+					Fraction_simplif.ctx.lineTo(xo+Fraction_simplif.dflicker*space+30,yo-30*(Fraction_simplif.dcut+1)+5);
+					Fraction_simplif.ctx.stroke();
+			Fraction_simplif.nguess="";Fraction_simplif.dguess="";
+					Fraction_simplif.nanswer=-1; Fraction_simplif.danswer=-1;
+				comments.addLine("OK, divided up and down by "+Fraction_simplif.ddivider);
+					Fraction_simplif.checkForFullSimplified();
+			
+				Fraction_simplif.ndivider=-1; Fraction_simplif.ddivider=-1; Fraction_simplif.ncut=0; Fraction_simplif.dcut=0; Fraction_simplif.lastclickup=1;
+				}
+				else{
+					comments.addLine("Wrong, you divided "+Fraction_simplif.nselect.getNb()+" by "+Fraction_simplif.ndivider);
+					comments.addLine(" and "+Fraction_simplif.dselect.getNb()+" by "+Fraction_simplif.ddivider);
+					Fraction_simplif.nguess="";Fraction_simplif.dguess="";
+					Fraction_simplif.nanswer=-1; Fraction_simplif.danswer=-1;
+					Fraction_simplif.ndivider=-1;Fraction_simplif.ddivider=-1;
+					Fraction_simplif.ncut=0; Fraction_simplif.dcut=0;
+					Fraction_simplif.lastclickup=0;
+					Fraction_simplif.overl.clearRect(0,100,Fraction_simplif.overlay.width,300);
+					}
+				}
+				this.evaluated=true;
+		
+		}
+		else if(Fraction_simplif.nflicker<(Fraction_simplif.W+3)){
+			if((Fraction_simplif.lastclickup===1)&&(Fraction_simplif.nanswer==-1)){
+				if(!isNaN(Fraction_simplif.nguess)){
+					Fraction_simplif.nanswer=parseInt(Fraction_simplif.nguess);
+					console.log("last nanswer "+Fraction_simplif.nanswer);
+					if (Fraction_simplif.nanswer===Fraction_simplif.endnres){
+							comments.addLine("Correct, now input the denominator");
+							Fraction_simplif.overl.clearRect(xo+space*Fraction_simplif.nflicker,yo-35,100,32);
+							Fraction_simplif.ctx.fillStyle="black"; 
+							Fraction_simplif.ctx.fillText(""+Fraction_simplif.nanswer,xo+Fraction_simplif.nflicker*space, yo-10);
+							Fraction_simplif.lastclickup=2;
+							}
+					else if (Fraction_simplif.nanswer!=Fraction_simplif.endnres){
+					
+							comments.addLine("Wrong input for numerator");
+							Fraction_simplif.nguess="";
+							Fraction_simplif.nanswer=-1;
+							Fraction_simplif.overl.clearRect(xo+Fraction_simplif.nflicker*space,yo-35,100,32);
+						}
+					}}
+			else if((Fraction_simplif.lastclickup===2)&&(Fraction_simplif.danswer==-1)){
+				if(!isNaN(Fraction_simplif.dguess)){
+					Fraction_simplif.danswer=parseInt(Fraction_simplif.dguess);
+					console.log("danswer "+Fraction_simplif.danswer);
+					if(Fraction_simplif.danswer===Fraction_simplif.enddres){
+							comments.addLine("Correct");
+							Fraction_simplif.overl.clearRect(xo+space*Fraction_simplif.dflicker,yo+2,100,30);
+				Fraction_simplif.ctx.fillStyle="black"; 
+				Fraction_simplif.ctx.fillText(""+Fraction_simplif.danswer,xo+Fraction_simplif.dflicker*space, yo+30);
+				
+							}
+					else {
+							comments.addLine("Wrong input for denominator");
+							Fraction_simplif.dguess="";
+							Fraction_simplif.danswer=-1;
+							Fraction_simplif.overl.clearRect((Fraction_simplif.W+2)*space,100,100,yo-99);
+						}
+				}}
+			if((Fraction_simplif.danswer===Fraction_simplif.enddres)&&(Fraction_simplif.nanswer===Fraction_simplif.endnres)){
+							comments.addLine("Very good, next question...");
+							//this.N=new Array(this.W);
+							//this.D=new Array(this.W);
+							window.setTimeout(function(){Fraction_simplif.nextquestion()},200);
+							}
+		}
+		}
+	
+//this.canvas.addEventListener('mousedown', this.resolveTerm);
+//this.canvas.addEventListener('mouseup', this.checkTarget);
+				
+		
+}
+window.addEventListener('keydown', Fraction_simplif.keyDowned);
+window.addEventListener('keypress', Fraction_simplif.keyTyped);
+window.addEventListener('mousedown', Fraction_simplif.resolveTerm);
+			
+window.addEventListener("load",function(){Fraction_simplif.nextquestion()});
+	
+	</script>
+	</body>
+</html>
+
